@@ -1,9 +1,9 @@
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QLineEdit,
-    QPushButton, QMessageBox, QFrame, QHBoxLayout
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
+    QPushButton, QFrame, QMessageBox, QSizePolicy
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QPixmap, QPainter, QColor
 from services.auth_service import verify_login
 from ui.styles import BTN_PRIMARY, INPUT_STYLE
 
@@ -12,99 +12,187 @@ class LoginWindow(QWidget):
     def __init__(self, on_success):
         super().__init__()
         self.on_success = on_success
-        self.setWindowTitle("Tuition CMS — Login")
-        self.setFixedSize(420, 380)
-        self.setStyleSheet("background: #eeeeee;")
+        self.setWindowTitle("TuitionCMS — Login")
+        self.setMinimumSize(480, 520)
+        self.setStyleSheet("background: #f0f0f0;")
         self._build_ui()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
 
     def _build_ui(self):
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(50, 50, 50, 50)
-        outer.setAlignment(Qt.AlignCenter)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        outer.addStretch(1)
+
+        center = QHBoxLayout()
+        center.addStretch(1)
 
         card = QFrame()
+        card.setObjectName("loginCard")
+        card.setFixedWidth(380)
+        card.setSizePolicy(
+            QSizePolicy.Fixed, QSizePolicy.Minimum
+        )
         card.setStyleSheet("""
             QFrame#loginCard {
                 background: #ffffff;
                 border: 1px solid #d8d8d8;
-                border-radius: 10px;
+                border-radius: 14px;
             }
         """)
-        card.setObjectName("loginCard")
 
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(32, 32, 32, 32)
-        layout.setSpacing(0)
+        cl = QVBoxLayout(card)
+        cl.setContentsMargins(40, 36, 40, 36)
+        cl.setSpacing(0)
 
+        # ── Logo placeholder ──────────────────────────────────────────────────
+        logo_frame = QFrame()
+        logo_frame.setFixedSize(72, 72)
+        logo_frame.setStyleSheet("""
+            QFrame {
+                background: #1a1a1a;
+                border-radius: 36px;
+                border: none;
+            }
+        """)
+        logo_inner = QVBoxLayout(logo_frame)
+        logo_inner.setContentsMargins(0, 0, 0, 0)
+        logo_icon = QLabel("T")
+        logo_icon.setStyleSheet(
+            "font-size: 32px; font-weight: bold; color: #ffffff;"
+            "background: transparent; border: none;"
+        )
+        logo_icon.setAlignment(Qt.AlignCenter)
+        logo_inner.addWidget(logo_icon)
+
+        logo_row = QHBoxLayout()
+        logo_row.addStretch()
+        logo_row.addWidget(logo_frame)
+        logo_row.addStretch()
+        cl.addLayout(logo_row)
+        cl.addSpacing(18)
+
+        # ── Title ─────────────────────────────────────────────────────────────
         title = QLabel("Tuition Centre")
-        title.setFont(QFont("Arial", 18, QFont.Bold))
-        title.setStyleSheet("color: #1a1a1a; background: transparent; border: none;")
+        title.setFont(QFont("Arial", 20, QFont.Bold))
+        title.setStyleSheet(
+            "color: #1a1a1a; background: transparent; border: none;"
+        )
         title.setAlignment(Qt.AlignCenter)
+        cl.addWidget(title)
 
-        subtitle = QLabel("Management System")
-        subtitle.setStyleSheet("font-size: 12px; color: #888888; background: transparent; border: none;")
-        subtitle.setAlignment(Qt.AlignCenter)
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
-        layout.addSpacing(24)
+        sub = QLabel("Management System")
+        sub.setStyleSheet(
+            "font-size: 12px; color: #888888; background: transparent; border: none;"
+        )
+        sub.setAlignment(Qt.AlignCenter)
+        cl.addWidget(sub)
+        cl.addSpacing(24)
 
-        divider = QFrame()
-        divider.setFrameShape(QFrame.HLine)
-        divider.setFixedHeight(1)
-        divider.setStyleSheet("background: #eeeeee; border: none;")
-        layout.addWidget(divider)
-        layout.addSpacing(20)
+        # Divider
+        div = QFrame()
+        div.setFrameShape(QFrame.HLine)
+        div.setFixedHeight(1)
+        div.setStyleSheet("background: #eeeeee; border: none; margin: 0;")
+        cl.addWidget(div)
+        cl.addSpacing(22)
 
+        # ── Error label ───────────────────────────────────────────────────────
+        self.error_lbl = QLabel("")
+        self.error_lbl.setStyleSheet("""
+            QLabel {
+                font-size: 12px;
+                color: #8b0000;
+                background: #fdeaea;
+                border: 1px solid #f5b8b8;
+                border-radius: 5px;
+                padding: 7px 10px;
+            }
+        """)
+        self.error_lbl.setWordWrap(True)
+        self.error_lbl.setAlignment(Qt.AlignCenter)
+        self.error_lbl.hide()
+        cl.addWidget(self.error_lbl)
+        cl.addSpacing(4)
+
+        # ── Username ──────────────────────────────────────────────────────────
         uid_lbl = QLabel("Username")
-        uid_lbl.setStyleSheet("font-size: 12px; font-weight: bold; color: #444444; background: transparent; border: none;")
-        layout.addWidget(uid_lbl)
-        layout.addSpacing(5)
+        uid_lbl.setStyleSheet(
+            "font-size: 12px; font-weight: bold; color: #444444;"
+            "background: transparent; border: none;"
+        )
+        cl.addWidget(uid_lbl)
+        cl.addSpacing(5)
 
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText("Enter username")
         self.username_input.setStyleSheet(INPUT_STYLE)
-        self.username_input.setFixedHeight(38)
-        layout.addWidget(self.username_input)
-        layout.addSpacing(14)
+        self.username_input.setFixedHeight(42)
+        cl.addWidget(self.username_input)
+        cl.addSpacing(14)
 
+        # ── Password ──────────────────────────────────────────────────────────
         pw_lbl = QLabel("Password")
-        pw_lbl.setStyleSheet("font-size: 12px; font-weight: bold; color: #444444; background: transparent; border: none;")
-        layout.addWidget(pw_lbl)
-        layout.addSpacing(5)
+        pw_lbl.setStyleSheet(
+            "font-size: 12px; font-weight: bold; color: #444444;"
+            "background: transparent; border: none;"
+        )
+        cl.addWidget(pw_lbl)
+        cl.addSpacing(5)
 
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText("Enter password")
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.setStyleSheet(INPUT_STYLE)
-        self.password_input.setFixedHeight(38)
+        self.password_input.setFixedHeight(42)
         self.password_input.returnPressed.connect(self._handle_login)
-        layout.addWidget(self.password_input)
-        layout.addSpacing(22)
+        cl.addWidget(self.password_input)
+        cl.addSpacing(22)
 
+        # ── Login button ──────────────────────────────────────────────────────
         login_btn = QPushButton("Log In")
-        login_btn.setFixedHeight(40)
+        login_btn.setFixedHeight(44)
         login_btn.setStyleSheet(BTN_PRIMARY)
         login_btn.clicked.connect(self._handle_login)
-        layout.addWidget(login_btn)
-        layout.addSpacing(12)
+        cl.addWidget(login_btn)
+        cl.addSpacing(14)
 
         hint = QLabel("Default: admin / admin123")
-        hint.setStyleSheet("font-size: 11px; color: #aaaaaa; background: transparent; border: none;")
+        hint.setStyleSheet(
+            "font-size: 11px; color: #bbbbbb; background: transparent; border: none;"
+        )
         hint.setAlignment(Qt.AlignCenter)
-        layout.addWidget(hint)
+        cl.addWidget(hint)
 
-        outer.addWidget(card)
+        center.addWidget(card)
+        center.addStretch(1)
+        outer.addLayout(center)
+        outer.addStretch(1)
 
     def _handle_login(self):
         username = self.username_input.text().strip()
         password = self.password_input.text().strip()
-        if not username or not password:
-            QMessageBox.warning(self, "Missing Fields", "Please enter both username and password.")
+        self.error_lbl.hide()
+
+        if not username:
+            self._show_error("Please enter your username.")
+            self.username_input.setFocus()
             return
+        if not password:
+            self._show_error("Please enter your password.")
+            self.password_input.setFocus()
+            return
+
         if verify_login(username, password):
             self.on_success()
             self.close()
         else:
-            QMessageBox.critical(self, "Login Failed", "Invalid username or password.")
+            self._show_error("Invalid username or password. Please try again.")
             self.password_input.clear()
             self.password_input.setFocus()
+
+    def _show_error(self, msg: str):
+        self.error_lbl.setText(msg)
+        self.error_lbl.show()

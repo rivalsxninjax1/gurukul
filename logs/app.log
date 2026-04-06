@@ -1,0 +1,27 @@
+2026-04-03 15:46:54,492 [INFO] services.payment_service: Payment 1 added for student 2: Rs.200.0
+2026-04-03 15:48:07,535 [INFO] services.payment_service: Payment 2 added for student 1: Rs.2323.0
+2026-04-03 16:08:54,594 [INFO] services.payment_service: Payment 3 added for student 3: Rs.1500.0
+2026-04-03 16:09:18,419 [INFO] services.payment_service: Payment 4 added for student 4: Rs.300.0
+2026-04-03 20:55:37,311 [INFO] services.subscription_service: Subscription 1 created for student 1
+2026-04-03 20:57:31,450 [INFO] services.subscription_service: Payment 1: Rs.1000.0 for sub 1
+2026-04-03 20:58:15,897 [INFO] services.subscription_service: Subscription 2 created for student 1
+2026-04-03 21:08:54,119 [INFO] services.subscription_service: Payment 2: Rs.1000.0 for sub 2
+2026-04-04 09:18:00,851 [INFO] services.subscription_service: Subscription 3 created for student 2
+2026-04-04 09:19:24,601 [INFO] services.subscription_service: Payment 3: Rs.305000.0 for sub 3
+2026-04-04 09:25:56,464 [INFO] services.subscription_service: Subscription 4 created for student 3
+2026-04-04 09:26:36,774 [INFO] services.subscription_service: Payment 4: Rs.2000.0 for sub 4
+2026-04-04 11:36:58,843 [INFO] services.subscription_service: Payment 5: Rs.1000.0 for sub 2
+2026-04-04 11:38:29,654 [INFO] services.backup_service: Database backed up to /Users/sickboi/Desktop/gurukul/tuition_cms_backup_20260404_113829.db
+2026-04-04 11:43:03,581 [INFO] services.subscription_service: Subscription 5 created for student 4
+2026-04-04 11:43:34,839 [INFO] services.subscription_service: Payment 6: Rs.2000.0 for sub 5
+2026-04-04 11:46:46,128 [INFO] services.subscription_service: Subscription 6 created for student 5
+2026-04-04 11:47:01,172 [INFO] services.subscription_service: Payment 7: Rs.2000.0 for sub 6
+2026-04-04 11:47:49,908 [INFO] services.subscription_service: Subscription 7 created for student 5
+2026-04-05 06:17:09,322 [INFO] services.subscription_service: Subscription 8 created for student 6
+2026-04-05 06:20:08,436 [INFO] services.subscription_service: Subscription 9 created for student 3
+2026-04-05 10:55:32,164 [INFO] services.subscription_service: Subscription 10 created for student 7
+2026-04-05 11:01:02,935 [INFO] services.subscription_service: Subscription 11 created for student 7
+2026-04-05 11:02:58,763 [INFO] services.subscription_service: Subscription 12 created for student 3
+2026-04-05 11:17:31,966 [INFO] services.subscription_service: Subscription 13 created for student 3
+2026-04-05 11:17:41,910 [INFO] services.subscription_service: Subscription 14 created for student 5
+2026-04-05 20:56:33,497 [INFO] services.subscription_service: Subscription 15 created for student 8

@@ -1,25 +1,48 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QLineEdit, QDialog,
-    QFormLayout, QDateEdit, QComboBox, QMessageBox, QHeaderView, QFrame
+    QComboBox, QMessageBox, QHeaderView, QFrame,
+    QDoubleSpinBox, QSpinBox, QScrollArea, QFileDialog
 )
-from PyQt5.QtCore import Qt, QDate
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor
 from database.connection import get_session
 from models.student import Student
 from models.class_group import Class, Group
+from services.subscription_service import (
+    create_subscription, get_student_subscription_flags
+)
+from services.id_service import generate_student_id
+from services.export_service import export_student_list_pdf
+from services.settings_service import get_setting
+from utils.bs_converter import bs_to_ad, today_bs_tuple
+from ui.bs_widgets import BSDateEdit
 from datetime import date
 from ui.styles import (
     BTN_PRIMARY, BTN_DANGER, BTN_SECONDARY,
-    TABLE_STYLE, INPUT_STYLE, COMBO_STYLE, DATE_STYLE,
-    DIALOG_STYLE, FORM_LABEL_STYLE, PAGE_TITLE_STYLE,
-    HINT_LABEL_STYLE, CARD_STYLE
+    TABLE_STYLE, INPUT_STYLE, INPUT_READONLY_STYLE, COMBO_STYLE,
+    SPINBOX_STYLE, DIALOG_STYLE, FORM_LABEL_STYLE,
+    PAGE_TITLE_STYLE, CARD_STYLE, SECTION_LABEL_STYLE,
 )
+from ui.event_bus import bus
+from ui.widgets import Toast
+
+FLAG_COLORS = {
+    "active":          ("#27ae60", "#eafaf1"),
+    "expiring_soon":   ("#e67e22", "#fef5e7"),
+    "payment_pending": ("#d35400", "#fdf2e9"),
+    "expired":         ("#c0392b", "#fdeaea"),
+    "no_subscription": ("#888888", "#f5f5f5"),
+}
 
 
 class StudentsPage(QWidget):
     def __init__(self):
         super().__init__()
         self.setStyleSheet("background: #f5f5f5;")
+        self._filter_flag  = "all"
+        self._filter_class = None
+        self._filter_group = None
         self._build_ui()
         self.refresh_table()
 
@@ -28,16 +51,20 @@ class StudentsPage(QWidget):
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(16)
 
-        # ── Header
         header = QHBoxLayout()
         title = QLabel("Students")
         title.setStyleSheet(PAGE_TITLE_STYLE)
 
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Search by name or user ID…")
-        self.search_input.setFixedWidth(260)
+        self.search_input.setPlaceholderText("Search by name or ID…")
+        self.search_input.setFixedWidth(200)
+        self.search_input.setFixedHeight(36)
         self.search_input.setStyleSheet(INPUT_STYLE)
         self.search_input.textChanged.connect(self.refresh_table)
+
+        export_btn = QPushButton("Export PDF")
+        export_btn.setStyleSheet(BTN_SECONDARY)
+        export_btn.clicked.connect(self._export_pdf)
 
         add_btn = QPushButton("+ Add Student")
         add_btn.setStyleSheet(BTN_PRIMARY)
@@ -46,22 +73,97 @@ class StudentsPage(QWidget):
         header.addWidget(title)
         header.addStretch()
         header.addWidget(self.search_input)
-        header.addSpacing(10)
+        header.addSpacing(8)
+        header.addWidget(export_btn)
+        header.addSpacing(6)
         header.addWidget(add_btn)
         layout.addLayout(header)
 
-        # ── Table inside white card
+        self.toast = Toast()
+        layout.addWidget(self.toast)
+
+        # Filter bar
+        filter_card = QFrame()
+        filter_card.setStyleSheet(CARD_STYLE)
+        fl = QHBoxLayout(filter_card)
+        fl.setContentsMargins(16, 10, 16, 10)
+        fl.setSpacing(10)
+
+        def flbl(t):
+            l = QLabel(t)
+            l.setStyleSheet(
+                "font-size: 12px; font-weight: bold; color: #555555;"
+                "background: transparent; border: none;"
+            )
+            return l
+
+        session = get_session()
+        classes = [(c.id, c.name) for c in session.query(Class).all()]
+        session.close()
+
+        self.class_filter = QComboBox()
+        self.class_filter.setStyleSheet(COMBO_STYLE)
+        self.class_filter.setFixedHeight(34)
+        self.class_filter.setFixedWidth(150)
+        self.class_filter.addItem("All Classes", None)
+        for cid, cname in classes:
+            self.class_filter.addItem(cname, cid)
+        self.class_filter.currentIndexChanged.connect(self._on_class_filter)
+
+        self.group_filter = QComboBox()
+        self.group_filter.setStyleSheet(COMBO_STYLE)
+        self.group_filter.setFixedHeight(34)
+        self.group_filter.setFixedWidth(150)
+        self.group_filter.addItem("All Groups", None)
+        self.group_filter.currentIndexChanged.connect(self._on_group_filter)
+
+        fl.addWidget(flbl("Class:"))
+        fl.addWidget(self.class_filter)
+        fl.addWidget(flbl("Group:"))
+        fl.addWidget(self.group_filter)
+        fl.addSpacing(12)
+        fl.addWidget(flbl("Status:"))
+
+        self._filter_btns = {}
+        filters = [
+            ("all",             "All",             "#333333", "#eeeeee"),
+            ("active",          "Active",          "#27ae60", "#eafaf1"),
+            ("expiring_soon",   "Expiring Soon",   "#e67e22", "#fef5e7"),
+            ("payment_pending", "Payment Pending", "#d35400", "#fdf2e9"),
+            ("expired",         "Expired",         "#c0392b", "#fdeaea"),
+        ]
+        for key, label, fg, bg in filters:
+            btn = QPushButton(label)
+            btn.setCheckable(True)
+            btn.setChecked(key == "all")
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {bg}; color: {fg};
+                    border: 1.5px solid {fg}; border-radius: 4px;
+                    padding: 3px 10px; font-size: 11px; font-weight: bold;
+                    min-height: 26px;
+                }}
+                QPushButton:checked {{ background: {fg}; color: #ffffff; }}
+            """)
+            btn.clicked.connect(lambda _, k=key: self._set_filter(k))
+            fl.addWidget(btn)
+            self._filter_btns[key] = btn
+
+        fl.addStretch()
+        layout.addWidget(filter_card)
+
+        # Table
         card = QFrame()
         card.setStyleSheet(CARD_STYLE)
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(0, 0, 0, 0)
-        card_layout.setSpacing(0)
+        cl = QVBoxLayout(card)
+        cl.setContentsMargins(0, 0, 0, 0)
 
         self.table = QTableWidget()
-        self.table.setColumnCount(7)
-        self.table.setHorizontalHeaderLabels(
-            ["ID", "User ID", "Name", "Phone", "Class", "Group", "Actions"]
-        )
+        self.table.setColumnCount(8)
+        self.table.setHorizontalHeaderLabels([
+            "ID", "User ID", "Name", "Phone",
+            "Class", "Group", "Subscription", "Actions"
+        ])
         hh = self.table.horizontalHeader()
         hh.setSectionResizeMode(0, QHeaderView.ResizeToContents)
         hh.setSectionResizeMode(1, QHeaderView.ResizeToContents)
@@ -69,40 +171,77 @@ class StudentsPage(QWidget):
         hh.setSectionResizeMode(3, QHeaderView.ResizeToContents)
         hh.setSectionResizeMode(4, QHeaderView.ResizeToContents)
         hh.setSectionResizeMode(5, QHeaderView.ResizeToContents)
-        hh.setSectionResizeMode(6, QHeaderView.Fixed)
-        self.table.setColumnWidth(6, 160)
+        hh.setSectionResizeMode(6, QHeaderView.ResizeToContents)
+        hh.setSectionResizeMode(7, QHeaderView.Fixed)
+        self.table.setColumnWidth(7, 190)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setAlternatingRowColors(True)
         self.table.setStyleSheet(TABLE_STYLE)
         self.table.verticalHeader().setVisible(False)
         self.table.setFrameShape(QFrame.NoFrame)
-
-        card_layout.addWidget(self.table)
+        cl.addWidget(self.table)
         layout.addWidget(card)
+
+    def _on_class_filter(self):
+        self._filter_class = self.class_filter.currentData()
+        self.group_filter.blockSignals(True)
+        self.group_filter.clear()
+        self.group_filter.addItem("All Groups", None)
+        if self._filter_class:
+            session = get_session()
+            groups = session.query(Group).filter_by(
+                class_id=self._filter_class
+            ).all()
+            for g in groups:
+                self.group_filter.addItem(g.name, g.id)
+            session.close()
+        self.group_filter.blockSignals(False)
+        self._filter_group = None
+        self.refresh_table()
+
+    def _on_group_filter(self):
+        self._filter_group = self.group_filter.currentData()
+        self.refresh_table()
+
+    def _set_filter(self, key):
+        self._filter_flag = key
+        for k, btn in self._filter_btns.items():
+            btn.setChecked(k == key)
+        self.refresh_table()
 
     def refresh_table(self):
         search = self.search_input.text().strip().lower()
         session = get_session()
         students = session.query(Student).all()
-
-        # Eagerly extract before close
         rows = []
         for s in students:
+            if self._filter_class and s.class_id != self._filter_class:
+                continue
+            if self._filter_group and s.group_id != self._filter_group:
+                continue
             rows.append({
-                "id":      str(s.id),
-                "uid":     s.user_id,
-                "name":    s.name,
-                "phone":   s.phone or "",
-                "class":   s.class_.name if s.class_ else "—",
-                "group":   s.group.name  if s.group  else "—",
-                "sid":     s.id,
+                "id":    str(s.id),
+                "uid":   s.user_id,
+                "name":  s.name,
+                "phone": s.phone or "",
+                "class": s.class_.name if s.class_ else "—",
+                "group": s.group.name  if s.group  else "—",
+                "sid":   s.id,
             })
         session.close()
 
+        for r in rows:
+            r["flag_data"] = get_student_subscription_flags(r["sid"])
+
         if search:
-            rows = [r for r in rows if
-                    search in r["name"].lower() or search in r["uid"].lower()]
+            rows = [r for r in rows
+                    if search in r["name"].lower()
+                    or search in r["uid"].lower()]
+
+        if self._filter_flag != "all":
+            rows = [r for r in rows
+                    if r["flag_data"]["flag"] == self._filter_flag]
 
         self.table.setRowCount(len(rows))
         for row, r in enumerate(rows):
@@ -112,40 +251,74 @@ class StudentsPage(QWidget):
             ]):
                 item = QTableWidgetItem(val)
                 item.setForeground(Qt.black)
-                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                 self.table.setItem(row, col, item)
+
+            fd = r["flag_data"]
+            fg, bg = FLAG_COLORS.get(fd["flag"], ("#333333", "#eeeeee"))
+            s_item = QTableWidgetItem(f"  {fd['label']}")
+            s_item.setForeground(QColor(fg))
+            s_item.setBackground(QColor(bg))
+            self.table.setItem(row, 6, s_item)
 
             aw = QWidget()
             al = QHBoxLayout(aw)
-            al.setContentsMargins(6, 4, 6, 4)
-            al.setSpacing(6)
+            al.setContentsMargins(5, 4, 5, 4)
+            al.setSpacing(5)
 
+            profile_btn = QPushButton("Profile")
+            profile_btn.setStyleSheet(BTN_SECONDARY)
+            profile_btn.clicked.connect(
+                lambda _, sid=r["sid"]: bus.open_student_profile.emit(sid)
+            )
             edit_btn = QPushButton("Edit")
             edit_btn.setStyleSheet(BTN_SECONDARY)
-            edit_btn.clicked.connect(lambda _, sid=r["sid"]: self.open_edit_dialog(sid))
-
+            edit_btn.clicked.connect(
+                lambda _, sid=r["sid"]: self.open_edit_dialog(sid)
+            )
             del_btn = QPushButton("Delete")
             del_btn.setStyleSheet(BTN_DANGER)
-            del_btn.clicked.connect(lambda _, sid=r["sid"]: self.delete_student(sid))
-
+            del_btn.clicked.connect(
+                lambda _, sid=r["sid"]: self.delete_student(sid)
+            )
+            al.addWidget(profile_btn)
             al.addWidget(edit_btn)
             al.addWidget(del_btn)
-            al.addStretch()
-            self.table.setCellWidget(row, 6, aw)
+            self.table.setCellWidget(row, 7, aw)
             self.table.setRowHeight(row, 44)
 
+    def _export_pdf(self):
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Export Students PDF",
+            "students_list.pdf", "PDF Files (*.pdf)"
+        )
+        if path:
+            centre = get_setting("centre_name", "Tuition Centre")
+            export_student_list_pdf(path, centre)
+            QMessageBox.information(
+                self, "Exported", f"Student list saved:\n{path}"
+            )
+
     def open_add_dialog(self):
-        if StudentDialog(parent=self).exec_():
+        dlg = StudentDialog(parent=self)
+        if dlg.exec_():
             self.refresh_table()
+            self.toast.success("Student added successfully.")
+            bus.student_saved.emit()
+            bus.open_student_profile.emit(dlg.saved_student_id)
 
     def open_edit_dialog(self, student_id):
-        if StudentDialog(student_id=student_id, parent=self).exec_():
+        dlg = StudentDialog(student_id=student_id, parent=self)
+        if dlg.exec_():
             self.refresh_table()
+            self.toast.success("Student updated.")
+            bus.student_saved.emit()
 
     def delete_student(self, student_id):
-        if QMessageBox.question(self, "Confirm Delete",
-                                "Are you sure you want to delete this student?",
-                                QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
+        if QMessageBox.question(
+            self, "Confirm Delete",
+            "Delete this student and all their records? This cannot be undone.",
+            QMessageBox.Yes | QMessageBox.No
+        ) == QMessageBox.Yes:
             session = get_session()
             s = session.query(Student).get(student_id)
             if s:
@@ -153,15 +326,22 @@ class StudentsPage(QWidget):
                 session.commit()
             session.close()
             self.refresh_table()
+            self.toast.success("Student deleted.")
+            bus.student_saved.emit()
 
 
 class StudentDialog(QDialog):
     def __init__(self, student_id=None, parent=None):
         super().__init__(parent)
-        self.student_id = student_id
-        self.setWindowTitle("Add Student" if not student_id else "Edit Student")
-        self.setMinimumWidth(440)
+        self.student_id       = student_id
+        self.saved_student_id = None
+        self.setWindowTitle(
+            "Add Student" if not student_id else "Edit Student"
+        )
+        self.setMinimumWidth(480)
+        self.setMinimumHeight(420)
         self.setStyleSheet(DIALOG_STYLE)
+        self.setSizeGripEnabled(True)
         self._build_ui()
         if student_id:
             self._load_data()
@@ -171,58 +351,68 @@ class StudentDialog(QDialog):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # White inner card
-        inner = QFrame()
-        inner.setStyleSheet("QFrame { background: #ffffff; border: none; }")
-        form_layout = QVBoxLayout(inner)
-        form_layout.setContentsMargins(28, 28, 28, 28)
-        form_layout.setSpacing(14)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setStyleSheet(
+            "QScrollArea { background: #ffffff; border: none; }"
+        )
+        inner = QWidget()
+        inner.setStyleSheet("background: #ffffff;")
+        fl = QVBoxLayout(inner)
+        fl.setContentsMargins(28, 28, 28, 20)
+        fl.setSpacing(14)
 
-        def row(label_text, widget):
+        def field(label_text, widget):
             lbl = QLabel(label_text)
             lbl.setStyleSheet(FORM_LABEL_STYLE)
-            form_layout.addWidget(lbl)
-            form_layout.addWidget(widget)
-            form_layout.addSpacing(2)
+            fl.addWidget(lbl)
+            fl.addWidget(widget)
+            fl.addSpacing(2)
 
-        self.user_id_input = QLineEdit()
-        self.user_id_input.setStyleSheet(INPUT_STYLE)
-        self.user_id_input.setFixedHeight(36)
+        # Auto-generated ID
+        self._auto_id = generate_student_id() if not self.student_id else ""
+        id_lbl = QLabel("User ID (auto-generated)")
+        id_lbl.setStyleSheet(FORM_LABEL_STYLE)
+        fl.addWidget(id_lbl)
+        self.id_display = QLineEdit(self._auto_id)
+        self.id_display.setReadOnly(True)
+        self.id_display.setStyleSheet(INPUT_READONLY_STYLE)
+        self.id_display.setFixedHeight(36)
+        fl.addWidget(self.id_display)
+        fl.addSpacing(2)
 
         self.name_input = QLineEdit()
         self.name_input.setStyleSheet(INPUT_STYLE)
         self.name_input.setFixedHeight(36)
+        self.name_input.setPlaceholderText("Full name")
 
         self.phone_input = QLineEdit()
         self.phone_input.setStyleSheet(INPUT_STYLE)
         self.phone_input.setFixedHeight(36)
+        self.phone_input.setPlaceholderText("Phone number")
 
         self.address_input = QLineEdit()
         self.address_input.setStyleSheet(INPUT_STYLE)
         self.address_input.setFixedHeight(36)
+        self.address_input.setPlaceholderText("Address")
 
-        self.dob_input = QDateEdit()
-        self.dob_input.setCalendarPopup(True)
-        self.dob_input.setDate(QDate.currentDate())
-        self.dob_input.setStyleSheet(DATE_STYLE)
-        self.dob_input.setFixedHeight(36)
+        # BS date pickers
+        self.dob_input = BSDateEdit()
+        self.dob_input.set_today()
 
-        self.join_date_input = QDateEdit()
-        self.join_date_input.setCalendarPopup(True)
-        self.join_date_input.setDate(QDate.currentDate())
-        self.join_date_input.setStyleSheet(DATE_STYLE)
-        self.join_date_input.setFixedHeight(36)
+        self.join_date_input = BSDateEdit()
+        self.join_date_input.set_today()
 
         session = get_session()
-        classes = session.query(Class).all()
-        class_list = [(c.id, c.name) for c in classes]
+        classes = [(c.id, c.name) for c in session.query(Class).all()]
         session.close()
 
         self.class_combo = QComboBox()
         self.class_combo.setStyleSheet(COMBO_STYLE)
         self.class_combo.setFixedHeight(36)
         self.class_combo.addItem("— Select Class —", None)
-        for cid, cname in class_list:
+        for cid, cname in classes:
             self.class_combo.addItem(cname, cid)
         self.class_combo.currentIndexChanged.connect(self._load_groups)
 
@@ -231,35 +421,61 @@ class StudentDialog(QDialog):
         self.group_combo.setFixedHeight(36)
         self.group_combo.addItem("— Select Group —", None)
 
-        row("User ID  *", self.user_id_input)
-        row("Full Name  *", self.name_input)
-        row("Phone", self.phone_input)
-        row("Address", self.address_input)
-        row("Date of Birth", self.dob_input)
-        row("Join Date", self.join_date_input)
-        row("Class", self.class_combo)
-        row("Group", self.group_combo)
+        field("Full Name  *",       self.name_input)
+        field("Phone",              self.phone_input)
+        field("Address",            self.address_input)
+        field("Date of Birth (BS)", self.dob_input)
+        field("Join Date (BS)",     self.join_date_input)
+        field("Class",              self.class_combo)
+        field("Group",              self.group_combo)
 
-        root.addWidget(inner)
+        if not self.student_id:
+            sep = QFrame()
+            sep.setFrameShape(QFrame.HLine)
+            sep.setStyleSheet("background: #eeeeee; border: none;")
+            fl.addWidget(sep)
 
-        # Button footer
+            sub_lbl = QLabel("INITIAL SUBSCRIPTION")
+            sub_lbl.setStyleSheet(SECTION_LABEL_STYLE)
+            fl.addWidget(sub_lbl)
+
+            self.duration_spin = QSpinBox()
+            self.duration_spin.setRange(1, 24)
+            self.duration_spin.setValue(1)
+            self.duration_spin.setSuffix("  month(s)")
+            self.duration_spin.setStyleSheet(SPINBOX_STYLE)
+            self.duration_spin.setFixedHeight(36)
+
+            self.fee_spin = QDoubleSpinBox()
+            self.fee_spin.setRange(0, 999999)
+            self.fee_spin.setValue(2000)
+            self.fee_spin.setPrefix("Rs. ")
+            self.fee_spin.setDecimals(0)
+            self.fee_spin.setStyleSheet(SPINBOX_STYLE)
+            self.fee_spin.setFixedHeight(36)
+
+            field("Duration",  self.duration_spin)
+            field("Total Fee", self.fee_spin)
+
+        scroll.setWidget(inner)
+        root.addWidget(scroll)
+
         footer = QFrame()
-        footer.setStyleSheet("QFrame { background: #f5f5f5; border-top: 1px solid #e8e8e8; }")
-        btn_layout = QHBoxLayout(footer)
-        btn_layout.setContentsMargins(28, 16, 28, 16)
-        btn_layout.addStretch()
-
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.setStyleSheet(BTN_SECONDARY)
-        cancel_btn.clicked.connect(self.reject)
-
-        save_btn = QPushButton("Save Student")
-        save_btn.setStyleSheet(BTN_PRIMARY)
-        save_btn.clicked.connect(self._save)
-
-        btn_layout.addWidget(cancel_btn)
-        btn_layout.addSpacing(10)
-        btn_layout.addWidget(save_btn)
+        footer.setStyleSheet(
+            "QFrame { background: #f5f5f5; border-top: 1px solid #e8e8e8; }"
+        )
+        br = QHBoxLayout(footer)
+        br.setContentsMargins(28, 14, 28, 14)
+        cancel = QPushButton("Cancel")
+        cancel.setStyleSheet(BTN_SECONDARY)
+        cancel.clicked.connect(self.reject)
+        label = "Save Student" if not self.student_id else "Update Student"
+        save  = QPushButton(label)
+        save.setStyleSheet(BTN_PRIMARY)
+        save.clicked.connect(self._save)
+        br.addWidget(cancel)
+        br.addStretch()
+        br.addWidget(save)
         root.addWidget(footer)
 
     def _load_groups(self):
@@ -279,19 +495,23 @@ class StudentDialog(QDialog):
         if not s:
             session.close()
             return
-        uid, name, phone, addr = s.user_id, s.name, s.phone or "", s.address or ""
+        uid, name = s.user_id, s.name
+        phone, addr = s.phone or "", s.address or ""
         dob, jd = s.dob, s.join_date
         cid, gid = s.class_id, s.group_id
         session.close()
 
-        self.user_id_input.setText(uid)
+        self.id_display.setText(uid)
         self.name_input.setText(name)
         self.phone_input.setText(phone)
         self.address_input.setText(addr)
+
+        # Set BS date pickers from AD dates
         if dob:
-            self.dob_input.setDate(QDate(dob.year, dob.month, dob.day))
+            self.dob_input.set_from_ad(dob)
         if jd:
-            self.join_date_input.setDate(QDate(jd.year, jd.month, jd.day))
+            self.join_date_input.set_from_ad(jd)
+
         if cid:
             idx = self.class_combo.findData(cid)
             if idx >= 0:
@@ -303,25 +523,58 @@ class StudentDialog(QDialog):
                 self.group_combo.setCurrentIndex(idx)
 
     def _save(self):
-        uid  = self.user_id_input.text().strip()
         name = self.name_input.text().strip()
-        if not uid or not name:
-            QMessageBox.warning(self, "Validation Error", "User ID and Full Name are required.")
+        if not name:
+            QMessageBox.warning(self, "Validation", "Full Name is required.")
+            self.name_input.setFocus()
             return
+
+        # Get AD dates from BS pickers
+        dob_ad  = self.dob_input.get_ad_date()
+        join_ad = self.join_date_input.get_ad_date()
+
+        if not join_ad:
+            QMessageBox.warning(
+                self, "Validation",
+                "Join Date (BS) is invalid. Please enter a valid BS date."
+            )
+            return
+
         session = get_session()
-        s = session.query(Student).get(self.student_id) if self.student_id else Student()
-        if not self.student_id:
+        if self.student_id:
+            s = session.query(Student).get(self.student_id)
+        else:
+            uid = self._auto_id
+            dup = session.query(Student).filter_by(user_id=uid).first()
+            if dup:
+                QMessageBox.warning(
+                    self, "Duplicate",
+                    f"User ID '{uid}' already exists. Please restart the form."
+                )
+                session.close()
+                return
+            s = Student()
+            s.user_id = uid
             session.add(s)
-        s.user_id   = uid
-        s.name      = name
-        s.phone     = self.phone_input.text().strip()
-        s.address   = self.address_input.text().strip()
-        s.class_id  = self.class_combo.currentData()
-        s.group_id  = self.group_combo.currentData()
-        d = self.dob_input.date()
-        j = self.join_date_input.date()
-        s.dob       = date(d.year(), d.month(), d.day())
-        s.join_date = date(j.year(), j.month(), j.day())
+
+        s.name     = name
+        s.phone    = self.phone_input.text().strip()
+        s.address  = self.address_input.text().strip()
+        s.class_id = self.class_combo.currentData()
+        s.group_id = self.group_combo.currentData()
+        s.dob       = dob_ad
+        s.join_date = join_ad
+
         session.commit()
+        self.saved_student_id = s.id
+        sid = s.id
         session.close()
+
+        if not self.student_id:
+            create_subscription(
+                student_id      = sid,
+                start_date      = join_ad,
+                duration_months = self.duration_spin.value(),
+                total_fee       = self.fee_spin.value(),
+            )
         self.accept()
