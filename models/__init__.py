@@ -8,3 +8,4 @@ from models import subscription
 from models import schedule
 from models import settings
 from models import exam
+from models import expense

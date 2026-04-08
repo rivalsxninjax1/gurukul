@@ -125,11 +125,11 @@ class AttendancePage(QWidget):
         import_btn.clicked.connect(self.open_import_dialog)
 
         fl.addWidget(lbl("Date (BS):"))
-        fl.addWidget(self.date_filter)
+        fl.addWidget(self.date_filter, 1)  ######### changed here #########
         fl.addWidget(lbl("Class:"))
         fl.addWidget(self.class_filter)
         fl.addWidget(lbl("Group:"))
-        fl.addWidget(self.group_filter)
+        fl.addWidget(self.group_filter)        
         fl.addSpacing(8)
         fl.addWidget(self.badge_present)
         fl.addWidget(self.badge_incomplete)

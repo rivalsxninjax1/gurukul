@@ -9,16 +9,97 @@ from database.connection import get_session
 from models.teacher import Teacher
 from models.attendance import TeacherAttendance
 from models.schedule import Schedule
-from utils.bs_converter import bs_str
+from utils.bs_converter import bs_str, today_bs_tuple, prev_bs_month, bs_month_ad_range
+from services.attendance_analytics_service import bs_month_name
 from ui.styles import (
     BTN_PRIMARY, BTN_SECONDARY, TABLE_STYLE, PAGE_TITLE_STYLE,
     CARD_STYLE, SECTION_LABEL_STYLE, PANEL_TITLE_STYLE,
     FORM_LABEL_STYLE, INPUT_STYLE, DIALOG_STYLE,
     STATUS_PRESENT, STATUS_PRESENT_BG,
     STATUS_INCOMPLETE, STATUS_INCOMPLETE_BG,
+    STATUS_ABSENT, STATUS_ABSENT_BG,
+    apply_msgbox_style,
 )
 from ui.event_bus import bus
 from ui.widgets import Toast
+from datetime import date
+
+
+def _teacher_monthly_analytics(teacher_id: int,
+                                bs_year: int, bs_month: int) -> dict:
+    """
+    Compute monthly attendance analytics for a teacher.
+    Working day = any day with at least ONE attendance record
+    (student OR teacher).
+    """
+    from models.attendance import Attendance
+
+    ad_start, ad_end = bs_month_ad_range(bs_year, bs_month)
+    if not ad_start or not ad_end:
+        return _empty_analytics(bs_year, bs_month)
+
+    session = get_session()
+
+    # Working days: any day with ANY attendance record
+    from sqlalchemy import distinct
+    student_days = set(
+        r[0] for r in session.query(Attendance.date).filter(
+            Attendance.date >= ad_start,
+            Attendance.date <= ad_end,
+        ).distinct().all()
+    )
+    teacher_days_all = set(
+        r[0] for r in session.query(TeacherAttendance.date).filter(
+            TeacherAttendance.date >= ad_start,
+            TeacherAttendance.date <= ad_end,
+        ).distinct().all()
+    )
+    working_days = student_days | teacher_days_all
+
+    # This teacher's records
+    teacher_records = session.query(TeacherAttendance).filter(
+        TeacherAttendance.teacher_id == teacher_id,
+        TeacherAttendance.date >= ad_start,
+        TeacherAttendance.date <= ad_end,
+    ).all()
+    teacher_day_map = {r.date: r.status for r in teacher_records}
+    session.close()
+
+    present    = 0
+    incomplete = 0
+    absent     = 0
+
+    for d in working_days:
+        status = teacher_day_map.get(d)
+        if status == "Present":
+            present += 1
+        elif status == "Incomplete":
+            incomplete += 1
+        else:
+            absent += 1
+
+    total_cal = (ad_end - ad_start).days + 1
+    holiday   = total_cal - len(working_days)
+
+    return {
+        "bs_year":        bs_year,
+        "bs_month":       bs_month,
+        "working_days":   len(working_days),
+        "present":        present,
+        "incomplete":     incomplete,
+        "absent":         absent,
+        "holiday":        max(0, holiday),
+        "total_calendar": total_cal,
+    }
+
+
+def _empty_analytics(bs_year, bs_month):
+    return {
+        "bs_year": bs_year, "bs_month": bs_month,
+        "working_days": 0, "present": 0,
+        "incomplete": 0, "absent": 0,
+        "holiday": 0, "total_calendar": 0,
+    }
 
 
 class TeacherProfilePage(QWidget):
@@ -44,7 +125,7 @@ class TeacherProfilePage(QWidget):
         self._layout.setContentsMargins(30, 30, 30, 30)
         self._layout.setSpacing(20)
 
-        # Back + title
+        # Back
         top = QHBoxLayout()
         back = QPushButton("← Back to Teachers")
         back.setStyleSheet(BTN_SECONDARY)
@@ -60,7 +141,7 @@ class TeacherProfilePage(QWidget):
         self.toast = Toast()
         self._layout.addWidget(self.toast)
 
-        # Details card
+        # Personal details card
         details_card = QFrame()
         details_card.setStyleSheet(CARD_STYLE)
         dcl = QVBoxLayout(details_card)
@@ -78,10 +159,8 @@ class TeacherProfilePage(QWidget):
         hdr_row.addWidget(self.edit_id_btn)
         dcl.addLayout(hdr_row)
 
-        sep = QFrame()
-        sep.setFrameShape(QFrame.HLine)
-        sep.setFixedHeight(1)
-        sep.setStyleSheet("background: #eeeeee; border: none;")
+        sep = QFrame(); sep.setFrameShape(QFrame.HLine)
+        sep.setFixedHeight(1); sep.setStyleSheet("background: #eeeeee; border: none;")
         dcl.addWidget(sep)
 
         self._info_vals = {}
@@ -98,19 +177,23 @@ class TeacherProfilePage(QWidget):
             k.setFixedWidth(130)
             v = QLabel("—")
             v.setStyleSheet(
-                "font-size: 13px; color: #1a1a1a; background: transparent;"
-                "border: none;"
+                "font-size: 13px; color: #1a1a1a; background: transparent; border: none;"
             )
             v.setWordWrap(True)
-            row.addWidget(k)
-            row.addWidget(v)
-            row.addStretch()
+            row.addWidget(k); row.addWidget(v); row.addStretch()
             dcl.addLayout(row)
             self._info_vals[key] = v
 
         self._layout.addWidget(details_card)
 
-        # Attendance history
+        # ── Monthly attendance analytics ──────────────────────────────────────
+        att_analytics_lbl = QLabel("MONTHLY ATTENDANCE ANALYTICS")
+        att_analytics_lbl.setStyleSheet(SECTION_LABEL_STYLE)
+        self._layout.addWidget(att_analytics_lbl)
+        self._analytics_card = self._build_analytics_card()
+        self._layout.addWidget(self._analytics_card)
+
+        # ── Attendance history ────────────────────────────────────────────────
         att_lbl = QLabel("ATTENDANCE HISTORY")
         att_lbl.setStyleSheet(SECTION_LABEL_STYLE)
         self._layout.addWidget(att_lbl)
@@ -139,7 +222,7 @@ class TeacherProfilePage(QWidget):
         att_cl.addWidget(self.att_table)
         self._layout.addWidget(att_frame)
 
-        # Schedule
+        # ── Schedule ──────────────────────────────────────────────────────────
         sch_lbl = QLabel("ASSIGNED SCHEDULE")
         sch_lbl.setStyleSheet(SECTION_LABEL_STYLE)
         self._layout.addWidget(sch_lbl)
@@ -170,7 +253,60 @@ class TeacherProfilePage(QWidget):
         scroll.setWidget(content)
         outer.addWidget(scroll)
 
-    # ── Load data ─────────────────────────────────────────────────────────────
+    def _build_analytics_card(self):
+        card = QFrame()
+        card.setStyleSheet(CARD_STYLE)
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setSpacing(14)
+
+        self._analytics_rows = {}
+        for period in ["current", "previous"]:
+            period_lbl = QLabel("—")
+            period_lbl.setStyleSheet(
+                "font-size: 12px; font-weight: bold; color: #888888;"
+                "background: transparent; border: none;"
+            )
+            layout.addWidget(period_lbl)
+
+            cards_row = QHBoxLayout()
+            cards_row.setSpacing(10)
+            stat_cards = {}
+            for key, label, fg, bg in [
+                ("working_days", "Working Days", "#333333",      "#f0f0f0"),
+                ("present",      "Present",      STATUS_PRESENT, STATUS_PRESENT_BG),
+                ("absent",       "Absent",       STATUS_ABSENT,  STATUS_ABSENT_BG),
+                ("incomplete",   "Incomplete",   "#7a4f00",       "#fdf3e0"),
+                ("holiday",      "Holiday",      "#555555",       "#eeeeee"),
+            ]:
+                mini = QFrame()
+                mini.setStyleSheet(f"""
+                    QFrame {{ background: {bg}; border: 1px solid #e0e0e0; border-radius: 6px; }}
+                """)
+                mini.setFixedHeight(64)
+                inner = QVBoxLayout(mini)
+                inner.setContentsMargins(12, 8, 12, 8)
+                inner.setSpacing(2)
+                t = QLabel(label)
+                t.setStyleSheet(
+                    f"font-size: 11px; font-weight: bold; color: {fg};"
+                    "background: transparent; border: none;"
+                )
+                v = QLabel("—")
+                v.setStyleSheet(
+                    f"font-size: 18px; font-weight: bold; color: {fg};"
+                    "background: transparent; border: none;"
+                )
+                inner.addWidget(t); inner.addWidget(v)
+                cards_row.addWidget(mini)
+                stat_cards[key] = v
+
+            layout.addLayout(cards_row)
+            self._analytics_rows[period] = {
+                "label": period_lbl, "stat_cards": stat_cards,
+            }
+
+        return card
 
     def load_teacher(self, teacher_id):
         if teacher_id < 0:
@@ -192,7 +328,7 @@ class TeacherProfilePage(QWidget):
             bs_str(t.join_date) if t.join_date else "—"
         )
 
-        # Attendance — BS dates, entry + exit
+        # Attendance history
         atts = sorted(t.attendances, key=lambda a: a.date, reverse=True)
         self.att_table.setRowCount(len(atts))
         for r, att in enumerate(atts):
@@ -219,15 +355,13 @@ class TeacherProfilePage(QWidget):
         scheds = session.query(Schedule).filter_by(
             teacher_id=teacher_id
         ).all()
-        sch_rows = []
-        for s in scheds:
-            sch_rows.append({
-                "day":     s.day_of_week,
-                "class":   s.class_.name  if s.class_  else "—",
-                "group":   s.group.name   if s.group   else "—",
-                "subject": s.subject or "—",
-                "time":    f"{s.start_time}  –  {s.end_time}",
-            })
+        sch_rows = [{
+            "day":     s.day_of_week,
+            "class":   s.class_.name  if s.class_  else "—",
+            "group":   s.group.name   if s.group   else "—",
+            "subject": s.subject or "—",
+            "time":    f"{s.start_time}  –  {s.end_time}",
+        } for s in scheds]
         session.close()
 
         self.sch_table.setRowCount(len(sch_rows))
@@ -241,7 +375,26 @@ class TeacherProfilePage(QWidget):
                 self.sch_table.setItem(r, c, item)
             self.sch_table.setRowHeight(r, 36)
 
-    # ── Edit ID ───────────────────────────────────────────────────────────────
+        # Monthly attendance analytics
+        by, bm, _ = today_bs_tuple()
+        py, pm    = prev_bs_month(by, bm)
+
+        current  = _teacher_monthly_analytics(teacher_id, by,  bm)
+        previous = _teacher_monthly_analytics(teacher_id, py, pm)
+
+        for period_key, data in [("current", current), ("previous", previous)]:
+            row_info = self._analytics_rows[period_key]
+            row_info["label"].setText(
+                f"{bs_month_name(data['bs_month'])} {data['bs_year']}"
+            )
+            for key, val in [
+                ("working_days", str(data["working_days"])),
+                ("present",      str(data["present"])),
+                ("absent",       str(data["absent"])),
+                ("incomplete",   str(data["incomplete"])),
+                ("holiday",      str(data["holiday"])),
+            ]:
+                row_info["stat_cards"][key].setText(val)
 
     def _edit_id(self):
         if not self._teacher_id:
@@ -262,10 +415,11 @@ class TeacherProfilePage(QWidget):
                 Teacher.id      != self._teacher_id
             ).first()
             if dup:
-                QMessageBox.warning(
-                    self, "Duplicate",
-                    f"Teacher ID '{new_id}' is already in use."
-                )
+                mb = QMessageBox(self)
+                mb.setWindowTitle("Duplicate")
+                mb.setText(f"Teacher ID '{new_id}' is already in use.")
+                apply_msgbox_style(mb)
+                mb.exec_()
                 session.close()
                 return
             t = session.query(Teacher).get(self._teacher_id)
@@ -284,8 +438,6 @@ class TeacherProfilePage(QWidget):
                 break
             parent = parent.parent()
 
-
-# ── Edit ID dialog ─────────────────────────────────────────────────────────────
 
 class EditIDDialog(QDialog):
     def __init__(self, title, current_value, parent=None):
@@ -325,15 +477,12 @@ class EditIDDialog(QDialog):
         br = QHBoxLayout(footer)
         br.setContentsMargins(28, 14, 28, 14)
         br.addStretch()
-
         cancel = QPushButton("Cancel")
         cancel.setStyleSheet(BTN_SECONDARY)
         cancel.clicked.connect(self.reject)
-
         save = QPushButton("Save")
         save.setStyleSheet(BTN_PRIMARY)
         save.clicked.connect(self.accept)
-
         br.addWidget(cancel)
         br.addSpacing(10)
         br.addWidget(save)

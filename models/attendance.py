@@ -13,26 +13,27 @@ class Attendance(Base):
     entry_time = Column(Time)
     exit_time  = Column(Time)
     status     = Column(String(20), default="Present")
-    # status: Present / Absent / Incomplete
 
     student = relationship("Student", back_populates="attendances")
 
 
 class TeacherAttendance(Base):
-    """Teacher attendance — entry only."""
+    """Teacher attendance — entry AND exit."""
     __tablename__ = "teacher_attendance"
 
-    id         = Column(Integer, primary_key=True, autoincrement=True)
-    teacher_id = Column(Integer, ForeignKey("teachers.id"), nullable=False)
-    date       = Column(Date, nullable=False)
-    entry_time = Column(Time)
+    id          = Column(Integer, primary_key=True, autoincrement=True)
+    teacher_id  = Column(Integer, ForeignKey("teachers.id"), nullable=False)
+    date        = Column(Date, nullable=False)
+    entry_time  = Column(Time)
+    exit_time   = Column(Time)
+    status      = Column(String(20), default="Present")
     source_file = Column(String(300))
 
     teacher = relationship("Teacher", back_populates="attendances")
 
 
 class AttendanceLog(Base):
-    """Legacy raw import log — kept for backward compat."""
+    """Legacy raw import log."""
     __tablename__ = "attendance_logs"
 
     id           = Column(Integer, primary_key=True, autoincrement=True)

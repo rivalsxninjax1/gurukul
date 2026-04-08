@@ -3,9 +3,12 @@ from dateutil.relativedelta import relativedelta
 from database.connection import get_session
 from models.subscription import StudentSubscription, SubscriptionPayment
 from models.student import Student
+from utils.bs_converter import days_remaining_label, bs_str
 import logging
 
 logger = logging.getLogger(__name__)
+
+CENTRE_NAME = "Gurukul Tuition Centre"
 
 
 def create_subscription(student_id: int, start_date: date,
@@ -17,7 +20,6 @@ def create_subscription(student_id: int, start_date: date,
     ).all()
     for sub in active:
         sub.status = "expired"
-
     new_sub = StudentSubscription(
         student_id = student_id,
         start_date = start_date,
@@ -29,12 +31,16 @@ def create_subscription(student_id: int, start_date: date,
     session.commit()
     sid = new_sub.id
     session.close()
-    logger.info(f"Subscription {sid} created for student {student_id}")
     return sid
 
 
 def renew_subscription(student_id: int, start_date: date,
-                        duration_months: int, total_fee: float) -> int:
+                        duration_months: int, total_fee: float,
+                        carry_forward_due: bool = False) -> int:
+    if carry_forward_due:
+        sub = get_active_subscription(student_id)
+        if sub and sub["balance"] > 0:
+            total_fee += sub["balance"]
     return create_subscription(student_id, start_date,
                                 duration_months, total_fee)
 
@@ -45,18 +51,20 @@ def get_active_subscription(student_id: int) -> dict | None:
     sub = session.query(StudentSubscription).filter_by(
         student_id=student_id, status="active"
     ).order_by(StudentSubscription.start_date.desc()).first()
-
     if not sub:
         session.close()
         return None
-
     if sub.end_date < today:
         sub.status = "expired"
         session.commit()
         session.close()
         return None
-
     total_paid = sum(p.amount_paid for p in sub.payments)
+    pay_status = (
+        "paid"    if total_paid >= sub.total_fee else
+        "partial" if total_paid > 0 else
+        "unpaid"
+    )
     result = {
         "id":         sub.id,
         "start_date": sub.start_date,
@@ -65,11 +73,8 @@ def get_active_subscription(student_id: int) -> dict | None:
         "total_paid": total_paid,
         "balance":    sub.total_fee - total_paid,
         "days_left":  (sub.end_date - today).days,
-        "pay_status": (
-            "paid"    if total_paid >= sub.total_fee else
-            "partial" if total_paid > 0 else
-            "unpaid"
-        ),
+        "days_label": days_remaining_label(sub.end_date),
+        "pay_status": pay_status,
     }
     session.close()
     return result
@@ -83,15 +88,17 @@ def get_subscription_history(student_id: int) -> list:
     result = []
     for sub in subs:
         total_paid = sum(p.amount_paid for p in sub.payments)
+        balance    = sub.total_fee - total_paid
         result.append({
-            "id":         sub.id,
-            "start_date": sub.start_date,
-            "end_date":   sub.end_date,
-            "total_fee":  sub.total_fee,
-            "total_paid": total_paid,
-            "balance":    sub.total_fee - total_paid,
-            "status":     sub.status,
-            "pay_status": (
+            "id":          sub.id,
+            "start_date":  sub.start_date,
+            "end_date":    sub.end_date,
+            "total_fee":   sub.total_fee,
+            "total_paid":  total_paid,
+            "balance":     balance,
+            "status":      sub.status,
+            "days_label":  days_remaining_label(sub.end_date),
+            "pay_status":  (
                 "paid"    if total_paid >= sub.total_fee else
                 "partial" if total_paid > 0 else
                 "unpaid"
@@ -101,23 +108,17 @@ def get_subscription_history(student_id: int) -> list:
     return result
 
 
-def add_payment(student_id: int, subscription_id: int,
-                amount: float, method: str,
-                note: str, payment_date: date) -> int:
+def get_outstanding_balance(student_id: int) -> float:
     session = get_session()
-    p = SubscriptionPayment(
-        student_id      = student_id,
-        subscription_id = subscription_id,
-        amount_paid     = amount,
-        payment_date    = payment_date,
-        payment_method  = method,
-        note            = note,
+    subs    = session.query(StudentSubscription).filter_by(
+        student_id=student_id
+    ).all()
+    total = sum(
+        max(0, sub.total_fee - sum(p.amount_paid for p in sub.payments))
+        for sub in subs
     )
-    session.add(p)
-    session.commit()
-    pid = p.id
     session.close()
-    return pid
+    return total
 
 
 def get_payments_for_subscription(subscription_id: int) -> list:
@@ -153,23 +154,41 @@ def get_all_payments_for_student(student_id: int) -> list:
     return result
 
 
-def get_subscription_dashboard_stats() -> dict:
+def add_payment(student_id: int, subscription_id: int,
+                amount: float, method: str,
+                note: str, payment_date: date) -> int:
     session = get_session()
-    today   = date.today()
-    students = session.query(Student).all()
+    p = SubscriptionPayment(
+        student_id      = student_id,
+        subscription_id = subscription_id,
+        amount_paid     = amount,
+        payment_date    = payment_date,
+        payment_method  = method,
+        note            = note,
+    )
+    session.add(p)
+    session.commit()
+    pid = p.id
+    session.close()
+    return pid
 
+
+def get_subscription_dashboard_stats() -> dict:
+    session      = get_session()
+    today        = date.today()
+    students     = session.query(Student).all()
     active_count  = 0
     expired_count = 0
     pending_count = 0
     total_revenue = 0.0
     total_pending = 0.0
-
     for s in students:
-        subs = [sub for sub in s.subscriptions if sub.status == "active"]
-        if not subs:
+        active_subs = [sub for sub in s.subscriptions
+                       if sub.status == "active"]
+        if not active_subs:
             expired_count += 1
             continue
-        sub  = subs[-1]
+        sub  = active_subs[-1]
         paid = sum(p.amount_paid for p in sub.payments)
         total_revenue += paid
         balance = sub.total_fee - paid
@@ -182,13 +201,11 @@ def get_subscription_dashboard_stats() -> dict:
             active_count += 1
             if balance > 0:
                 pending_count += 1
-
     try:
         session.commit()
     except Exception:
         session.rollback()
     session.close()
-
     return {
         "active":        active_count,
         "expired":       expired_count,
@@ -199,32 +216,40 @@ def get_subscription_dashboard_stats() -> dict:
 
 
 def get_student_subscription_flags(student_id: int) -> dict:
-    today = date.today()
-    sub   = get_active_subscription(student_id)
+    sub = get_active_subscription(student_id)
     if not sub:
-        return {"flag": "expired", "label": "Expired", "days_left": 0,
-                "pay_status": "—", "color": "#c0392b"}
-    days  = sub["days_left"]
-    pstat = sub["pay_status"]
+        return {
+            "flag":       "expired",
+            "label":      "Expired",
+            "days_label": "No active subscription",
+            "pay_status": "—",
+            "color":      "#c0392b",
+        }
+    days     = sub["days_left"]
+    pstat    = sub["pay_status"]
+    days_lbl = sub["days_label"]
     if days <= 3:
-        return {"flag": "expiring_soon", "label": f"Expiring in {days}d",
-                "days_left": days, "pay_status": pstat, "color": "#e67e22"}
+        return {"flag": "expiring_soon",   "label": f"Expiring in {days}d",
+                "days_label": days_lbl,    "pay_status": pstat, "color": "#e67e22"}
     if pstat in ("partial", "unpaid"):
         return {"flag": "payment_pending", "label": "Payment Pending",
-                "days_left": days, "pay_status": pstat, "color": "#d35400"}
-    return {"flag": "active", "label": f"Active ({days}d left)",
-            "days_left": days, "pay_status": pstat, "color": "#27ae60"}
+                "days_label": days_lbl,    "pay_status": pstat, "color": "#d35400"}
+    return    {"flag": "active",           "label": f"Active · {days_lbl}",
+                "days_label": days_lbl,    "pay_status": pstat, "color": "#27ae60"}
 
 
-def generate_payment_receipt(payment_id: int, output_path: str):
+# ── Compact Receipt PDF ───────────────────────────────────────────────────────
+
+def generate_payment_receipt(payment_id: int, output_path: str,
+                              centre_name: str = "GURUKUL ACADEMY AND TRAINING CENTER",
+                              centre_address: str = "Biratnagar-1, Bhatta Chowk"):
     """
-    PDF receipt for a SINGLE payment.
-    Shows ONLY the current subscription details and this payment's impact.
-    Does NOT include previous subscriptions or their unpaid amounts.
+    Compact A6 receipt with PNG logo + full institution branding.
     """
     from reportlab.pdfgen import canvas as pdf_canvas
-    from reportlab.lib.pagesizes import A4
-    from utils.bs_converter import bs_str
+    from reportlab.lib.pagesizes import A6
+    from utils.logo_helper import get_logo_path, logo_exists
+    import os
 
     session = get_session()
     p = session.query(SubscriptionPayment).get(payment_id)
@@ -232,76 +257,123 @@ def generate_payment_receipt(payment_id: int, output_path: str):
         session.close()
         return
 
-    s   = p.student
-    sub = p.subscription
-
-    # Only sum payments for THIS subscription
+    s        = p.student
+    sub      = p.subscription
     sub_paid = sum(x.amount_paid for x in sub.payments) if sub else 0
-    sub_balance = (sub.total_fee - sub_paid) if sub else 0
-    created  = str(p.created_at)[:16] if p.created_at else ""
+    bal      = (sub.total_fee - sub_paid) if sub else 0
+    pdate    = bs_str(p.payment_date)
     session.close()
 
-    c = pdf_canvas.Canvas(output_path, pagesize=A4)
-    w, h = A4
+    W, H = A6
+    c = pdf_canvas.Canvas(output_path, pagesize=A6)
 
-    # Header
-    c.setFont("Helvetica-Bold", 18)
-    c.drawString(50, h - 55, "Payment Receipt")
-    c.setFont("Helvetica", 10)
-    c.drawString(50, h - 72, f"Generated: {created}")
-    c.line(50, h - 84, w - 50, h - 84)
-
-    y = h - 112
-
-    def section(title):
-        nonlocal y
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, y, title)
-        y -= 6
-        c.line(50, y, w - 50, y)
-        y -= 16
-
-    def kv(label, val):
-        nonlocal y
-        c.setFont("Helvetica-Bold", 10)
-        c.drawString(60,  y, f"{label}:")
-        c.setFont("Helvetica", 10)
-        c.drawString(200, y, str(val))
-        y -= 18
-
-    section("Student")
-    kv("Name",    s.name    if s else "—")
-    kv("User ID", s.user_id if s else "—")
-    kv("Phone",   s.phone or "—" if s else "—")
-    y -= 8
-
-    section("Subscription")
-    if sub:
-        kv("Period",    f"{bs_str(sub.start_date)}  to  {bs_str(sub.end_date)}")
-        kv("Total Fee", f"Rs. {sub.total_fee:,.0f}")
-        kv("Status",    sub.status.capitalize())
+    # ── Header: Logo + Institution name ──────────────────────────────────────
+    logo_drawn = False
+    logo_path  = get_logo_path()
+    if os.path.isfile(logo_path):
+        try:
+            logo_h = 36
+            logo_w = 36
+            # Keep aspect ratio using PIL
+            from PIL import Image as PILImage
+            with PILImage.open(logo_path) as img:
+                iw, ih = img.size
+            ratio  = min(logo_w / iw, logo_h / ih)
+            draw_w = iw * ratio
+            draw_h = ih * ratio
+            c.drawImage(
+                logo_path,
+                (W / 2) - (draw_w / 2) - 30,
+                H - 10 - draw_h,
+                width  = draw_w,
+                height = draw_h,
+                mask   = "auto",
+                preserveAspectRatio = True,
+            )
+            logo_drawn = True
+            name_y = H - 14 - draw_h
+        except Exception:
+            name_y = H - 28
     else:
-        kv("Subscription", "Not found")
-    y -= 8
+        name_y = H - 28
 
-    section("This Payment")
-    kv("Amount Paid",    f"Rs. {p.amount_paid:,.0f}")
-    kv("Payment Date",   bs_str(p.payment_date))
-    kv("Payment Method", p.payment_method)
+    c.setFont("Helvetica-Bold", 11)
+    c.setFillColorRGB(0.1, 0.1, 0.1)
+    c.drawCentredString(W / 2, name_y, centre_name)
+
+    c.setFont("Helvetica", 8)
+    c.setFillColorRGB(0.4, 0.4, 0.4)
+    c.drawCentredString(W / 2, name_y - 13, centre_address)
+    c.drawCentredString(W / 2, name_y - 24, "Payment Receipt")
+
+    c.setStrokeColorRGB(0.7, 0.7, 0.7)
+    c.setLineWidth(0.5)
+    c.line(10, name_y - 32, W - 10, name_y - 32)
+
+    y = name_y - 48
+    c.setFillColorRGB(0.1, 0.1, 0.1)
+
+    def line_kv(label, val, bold_val=False):
+        nonlocal y
+        c.setFont("Helvetica", 8)
+        c.setFillColorRGB(0.4, 0.4, 0.4)
+        c.drawString(12, y, label)
+        c.setFont("Helvetica-Bold" if bold_val else "Helvetica", 8)
+        c.setFillColorRGB(0.1, 0.1, 0.1)
+        c.drawRightString(W - 12, y, str(val))
+        y -= 14
+
+    def section_title(title):
+        nonlocal y
+        y -= 4
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColorRGB(0.2, 0.2, 0.2)
+        c.drawString(12, y, title.upper())
+        y -= 3
+        c.setStrokeColorRGB(0.85, 0.85, 0.85)
+        c.line(12, y, W - 12, y)
+        y -= 11
+
+    section_title("Student")
+    line_kv("Name",    s.name    if s else "—", bold_val=True)
+    line_kv("User ID", s.user_id if s else "—")
+
+    section_title("Subscription")
+    if sub:
+        line_kv("Period", f"{bs_str(sub.start_date)} → {bs_str(sub.end_date)}")
+        line_kv("Total Fee", f"Rs. {sub.total_fee:,.0f}")
+
+    section_title("Payment")
+    line_kv("Date",   pdate)
+    line_kv("Method", p.payment_method)
     if p.note:
-        kv("Note", p.note)
-    y -= 8
+        line_kv("Note", p.note)
 
-    section("Balance for This Subscription")
-    kv("Total Fee",   f"Rs. {sub.total_fee:,.0f}" if sub else "—")
-    kv("Total Paid",  f"Rs. {sub_paid:,.0f}")
-    kv("Balance Due", f"Rs. {sub_balance:,.0f}")
+    # Prominent amount
+    y -= 6
+    c.setStrokeColorRGB(0.1, 0.1, 0.1)
+    c.setLineWidth(1)
+    c.line(12, y, W - 12, y)
+    y -= 16
+    c.setFont("Helvetica-Bold", 13)
+    c.setFillColorRGB(0.1, 0.1, 0.1)
+    c.drawString(12, y, "Amount Paid")
+    c.drawRightString(W - 12, y, f"Rs. {p.amount_paid:,.0f}")
+    y -= 4
+    c.line(12, y, W - 12, y)
+    y -= 14
+
+    if bal > 0:
+        c.setFont("Helvetica", 8)
+        c.setFillColorRGB(0.6, 0.2, 0.2)
+        c.drawString(12, y, "Remaining Balance")
+        c.drawRightString(W - 12, y, f"Rs. {bal:,.0f}")
 
     # Footer
-    c.line(50, 70, w - 50, 70)
-    c.setFont("Helvetica", 9)
-    c.setFillColorRGB(0.5, 0.5, 0.5)
-    c.drawString(50, 56,
-                 "This receipt is valid for the current subscription only.")
-    c.drawString(50, 44, "Computer-generated. No signature required.")
+    c.setStrokeColorRGB(0.85, 0.85, 0.85)
+    c.setLineWidth(0.5)
+    c.line(12, 28, W - 12, 28)
+    c.setFont("Helvetica", 7)
+    c.setFillColorRGB(0.55, 0.55, 0.55)
+    c.drawCentredString(W / 2, 18, "Thank you! — Computer generated receipt.")
     c.save()

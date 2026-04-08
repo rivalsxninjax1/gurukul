@@ -25,3 +25,746 @@
 2026-04-05 11:17:31,966 [INFO] services.subscription_service: Subscription 13 created for student 3
 2026-04-05 11:17:41,910 [INFO] services.subscription_service: Subscription 14 created for student 5
 2026-04-05 20:56:33,497 [INFO] services.subscription_service: Subscription 15 created for student 8
+2026-04-06 06:52:40,507 [INFO] services.export_service: Student profile PDF exported: /Users/sickboi/Desktop/gurukul/student_profile_2.pdf
+2026-04-06 07:19:11,052 [INFO] services.subscription_service: Subscription 1 created for student 1
+2026-04-06 14:39:50,922 [INFO] services.export_service: Student profile PDF: /Users/sickboi/Desktop/gurukul/student_profile_1.pdf
+2026-04-06 14:55:18,446 [INFO] services.expense_service: Expense 1: rent Rs.4.0
+2026-04-06 15:00:41,448 [INFO] services.subscription_service: Subscription 2 created for student 2
+2026-04-06 15:15:04,376 [INFO] services.expense_service: Expense 2: supplies Rs.110.0
+2026-04-06 15:18:16,700 [INFO] services.subscription_service: Subscription 3 created for student 3
+2026-04-06 15:26:33,950 [INFO] services.subscription_service: Subscription 4 created for student 1
+2026-04-06 15:29:48,116 [INFO] services.subscription_service: Subscription 5 created for student 3
+2026-04-06 15:30:04,479 [INFO] services.subscription_service: Subscription 6 created for student 3
+2026-04-07 06:25:20,904 [INFO] services.expense_service: Expense 3: wow Rs.800.0
+2026-04-07 06:50:40,476 [INFO] services.subscription_service: Subscription 7 created for student 4
+2026-04-07 06:54:05,414 [INFO] services.subscription_service: Subscription 8 created for student 2
+2026-04-07 07:04:18,005 [INFO] services.export_service: Student profile PDF: /Users/sickboi/Desktop/gurukul/student_profile_4aagaman.pdf
+2026-04-07 13:07:22,096 [INFO] services.attendance_service: Detected timestamp format: mixed
+2026-04-07 20:12:35,546 [WARNING] services.attendance_service: No dominant format detected — will try all per row
+2026-04-07 20:30:38,589 [WARNING] services.attendance_service: No dominant format detected — will try all per row
+2026-04-07 20:30:38,593 [ERROR] services.attendance_service: [PARSE FAIL] Row 0 → 09:12:00
+2026-04-07 20:30:38,594 [ERROR] services.attendance_service: [PARSE FAIL] Row 1 → 17:18:00
+2026-04-07 20:30:38,594 [ERROR] services.attendance_service: [PARSE FAIL] Row 2 → 09:05:00
+2026-04-07 20:30:38,594 [ERROR] services.attendance_service: [PARSE FAIL] Row 3 → 17:00:00
+2026-04-07 20:30:38,595 [ERROR] services.attendance_service: [PARSE FAIL] Row 4 → 09:11:00
+2026-04-07 20:30:38,595 [ERROR] services.attendance_service: [PARSE FAIL] Row 5 → 17:08:00
+2026-04-07 20:30:38,595 [ERROR] services.attendance_service: [PARSE FAIL] Row 6 → 09:21:00
+2026-04-07 20:30:38,596 [ERROR] services.attendance_service: [PARSE FAIL] Row 7 → 17:30:00
+2026-04-07 20:30:38,596 [ERROR] services.attendance_service: [PARSE FAIL] Row 8 → 09:18:00
+2026-04-07 20:30:38,596 [ERROR] services.attendance_service: [PARSE FAIL] Row 9 → 17:08:00
+2026-04-07 20:30:38,596 [ERROR] services.attendance_service: [PARSE FAIL] Row 10 → 09:11:00
+2026-04-07 20:30:38,597 [ERROR] services.attendance_service: [PARSE FAIL] Row 11 → 17:23:00
+2026-04-07 20:30:38,597 [ERROR] services.attendance_service: [PARSE FAIL] Row 12 → 09:22:00
+2026-04-07 20:30:38,597 [ERROR] services.attendance_service: [PARSE FAIL] Row 13 → 17:29:00
+2026-04-07 20:30:38,598 [ERROR] services.attendance_service: [PARSE FAIL] Row 14 → 09:29:00
+2026-04-07 20:30:38,598 [ERROR] services.attendance_service: [PARSE FAIL] Row 15 → 17:04:00
+2026-04-07 20:30:38,598 [ERROR] services.attendance_service: [PARSE FAIL] Row 16 → 09:26:00
+2026-04-07 20:30:38,598 [ERROR] services.attendance_service: [PARSE FAIL] Row 17 → 17:17:00
+2026-04-07 20:30:38,599 [ERROR] services.attendance_service: [PARSE FAIL] Row 18 → 09:05:00
+2026-04-07 20:30:38,599 [ERROR] services.attendance_service: [PARSE FAIL] Row 19 → 17:04:00
+2026-04-07 20:30:38,599 [ERROR] services.attendance_service: [PARSE FAIL] Row 20 → 09:25:00
+2026-04-07 20:30:38,600 [ERROR] services.attendance_service: [PARSE FAIL] Row 21 → 17:30:00
+2026-04-07 20:30:38,600 [ERROR] services.attendance_service: [PARSE FAIL] Row 22 → 09:29:00
+2026-04-07 20:30:38,600 [ERROR] services.attendance_service: [PARSE FAIL] Row 23 → 17:13:00
+2026-04-07 20:30:38,601 [ERROR] services.attendance_service: [PARSE FAIL] Row 24 → 09:18:00
+2026-04-07 20:30:38,601 [ERROR] services.attendance_service: [PARSE FAIL] Row 25 → 17:22:00
+2026-04-07 20:30:38,601 [ERROR] services.attendance_service: [PARSE FAIL] Row 26 → 09:13:00
+2026-04-07 20:30:38,602 [ERROR] services.attendance_service: [PARSE FAIL] Row 27 → 17:16:00
+2026-04-07 20:30:38,602 [ERROR] services.attendance_service: [PARSE FAIL] Row 28 → 09:02:00
+2026-04-07 20:30:38,602 [ERROR] services.attendance_service: [PARSE FAIL] Row 29 → 17:09:00
+2026-04-07 20:30:38,603 [ERROR] services.attendance_service: [PARSE FAIL] Row 30 → 09:26:00
+2026-04-07 20:30:38,603 [ERROR] services.attendance_service: [PARSE FAIL] Row 31 → 17:13:00
+2026-04-07 20:30:38,603 [ERROR] services.attendance_service: [PARSE FAIL] Row 32 → 09:00:00
+2026-04-07 20:30:38,604 [ERROR] services.attendance_service: [PARSE FAIL] Row 33 → 17:29:00
+2026-04-07 20:30:38,604 [ERROR] services.attendance_service: [PARSE FAIL] Row 34 → 09:00:00
+2026-04-07 20:30:38,604 [ERROR] services.attendance_service: [PARSE FAIL] Row 35 → 17:06:00
+2026-04-07 20:30:38,605 [ERROR] services.attendance_service: [PARSE FAIL] Row 36 → 09:00:00
+2026-04-07 20:30:38,605 [ERROR] services.attendance_service: [PARSE FAIL] Row 37 → 17:17:00
+2026-04-07 20:30:38,605 [ERROR] services.attendance_service: [PARSE FAIL] Row 38 → 09:16:00
+2026-04-07 20:30:38,605 [ERROR] services.attendance_service: [PARSE FAIL] Row 39 → 17:14:00
+2026-04-07 20:30:38,606 [ERROR] services.attendance_service: [PARSE FAIL] Row 40 → 09:07:00
+2026-04-07 20:30:38,606 [ERROR] services.attendance_service: [PARSE FAIL] Row 41 → 17:07:00
+2026-04-07 20:30:38,606 [ERROR] services.attendance_service: [PARSE FAIL] Row 42 → 09:01:00
+2026-04-07 20:30:38,607 [ERROR] services.attendance_service: [PARSE FAIL] Row 43 → 17:01:00
+2026-04-07 20:30:38,607 [ERROR] services.attendance_service: [PARSE FAIL] Row 44 → 09:15:00
+2026-04-07 20:30:38,607 [ERROR] services.attendance_service: [PARSE FAIL] Row 45 → 17:09:00
+2026-04-07 20:30:38,607 [ERROR] services.attendance_service: [PARSE FAIL] Row 46 → 09:16:00
+2026-04-07 20:30:38,608 [ERROR] services.attendance_service: [PARSE FAIL] Row 47 → 17:10:00
+2026-04-07 20:30:38,608 [ERROR] services.attendance_service: [PARSE FAIL] Row 48 → 09:27:00
+2026-04-07 20:30:38,608 [ERROR] services.attendance_service: [PARSE FAIL] Row 49 → 17:15:00
+2026-04-07 20:30:38,608 [ERROR] services.attendance_service: [PARSE FAIL] Row 50 → 09:10:00
+2026-04-07 20:30:38,609 [ERROR] services.attendance_service: [PARSE FAIL] Row 51 → 17:23:00
+2026-04-07 20:30:38,609 [ERROR] services.attendance_service: [PARSE FAIL] Row 52 → 09:03:00
+2026-04-07 20:30:38,609 [ERROR] services.attendance_service: [PARSE FAIL] Row 53 → 17:27:00
+2026-04-07 20:30:38,610 [ERROR] services.attendance_service: [PARSE FAIL] Row 54 → 09:21:00
+2026-04-07 20:30:38,610 [ERROR] services.attendance_service: [PARSE FAIL] Row 55 → 17:06:00
+2026-04-07 20:30:38,610 [ERROR] services.attendance_service: [PARSE FAIL] Row 56 → 09:17:00
+2026-04-07 20:30:38,610 [ERROR] services.attendance_service: [PARSE FAIL] Row 57 → 17:20:00
+2026-04-07 20:30:38,611 [ERROR] services.attendance_service: [PARSE FAIL] Row 58 → 09:24:00
+2026-04-07 20:30:38,611 [ERROR] services.attendance_service: [PARSE FAIL] Row 59 → 17:11:00
+2026-04-07 20:30:38,611 [ERROR] services.attendance_service: [PARSE FAIL] Row 60 → 09:10:00
+2026-04-07 20:30:38,611 [ERROR] services.attendance_service: [PARSE FAIL] Row 61 → 17:10:00
+2026-04-07 20:30:38,612 [ERROR] services.attendance_service: [PARSE FAIL] Row 62 → 09:00:00
+2026-04-07 20:30:38,612 [ERROR] services.attendance_service: [PARSE FAIL] Row 63 → 17:11:00
+2026-04-07 20:30:38,612 [ERROR] services.attendance_service: [PARSE FAIL] Row 64 → 09:08:00
+2026-04-07 20:30:38,612 [ERROR] services.attendance_service: [PARSE FAIL] Row 65 → 17:11:00
+2026-04-07 20:30:38,612 [ERROR] services.attendance_service: [PARSE FAIL] Row 66 → 09:06:00
+2026-04-07 20:30:38,613 [ERROR] services.attendance_service: [PARSE FAIL] Row 67 → 17:25:00
+2026-04-07 20:30:38,613 [ERROR] services.attendance_service: [PARSE FAIL] Row 68 → 09:13:00
+2026-04-07 20:30:38,613 [ERROR] services.attendance_service: [PARSE FAIL] Row 69 → 17:20:00
+2026-04-07 20:30:38,613 [ERROR] services.attendance_service: [PARSE FAIL] Row 70 → 09:14:00
+2026-04-07 20:30:38,614 [ERROR] services.attendance_service: [PARSE FAIL] Row 71 → 17:08:00
+2026-04-07 20:30:38,614 [ERROR] services.attendance_service: [PARSE FAIL] Row 72 → 09:19:00
+2026-04-07 20:30:38,614 [ERROR] services.attendance_service: [PARSE FAIL] Row 73 → 17:00:00
+2026-04-07 20:30:38,614 [ERROR] services.attendance_service: [PARSE FAIL] Row 74 → 09:23:00
+2026-04-07 20:30:38,615 [ERROR] services.attendance_service: [PARSE FAIL] Row 75 → 17:07:00
+2026-04-07 20:30:38,615 [ERROR] services.attendance_service: [PARSE FAIL] Row 76 → 09:10:00
+2026-04-07 20:30:38,615 [ERROR] services.attendance_service: [PARSE FAIL] Row 77 → 17:23:00
+2026-04-07 20:30:38,616 [ERROR] services.attendance_service: [PARSE FAIL] Row 78 → 09:26:00
+2026-04-07 20:30:38,616 [ERROR] services.attendance_service: [PARSE FAIL] Row 79 → 17:05:00
+2026-04-07 20:41:12,098 [WARNING] services.attendance_service: No dominant format detected — will try all per row
+2026-04-07 20:41:12,103 [ERROR] services.attendance_service: [PARSE FAIL] Row 0 → 2026-04-07
+2026-04-07 20:41:12,104 [ERROR] services.attendance_service: [PARSE FAIL] Row 1 → 2026-04-07
+2026-04-07 20:41:12,105 [ERROR] services.attendance_service: [PARSE FAIL] Row 2 → 2026-04-07
+2026-04-07 20:41:12,105 [ERROR] services.attendance_service: [PARSE FAIL] Row 3 → 2026-04-07
+2026-04-07 20:41:12,105 [ERROR] services.attendance_service: [PARSE FAIL] Row 4 → 2026-04-07
+2026-04-07 20:41:12,106 [ERROR] services.attendance_service: [PARSE FAIL] Row 5 → 2026-04-07
+2026-04-07 20:41:12,106 [ERROR] services.attendance_service: [PARSE FAIL] Row 6 → 2026-04-07
+2026-04-07 20:41:12,107 [ERROR] services.attendance_service: [PARSE FAIL] Row 7 → 2026-04-07
+2026-04-07 20:41:12,108 [ERROR] services.attendance_service: [PARSE FAIL] Row 8 → 2026-04-06
+2026-04-07 20:41:12,108 [ERROR] services.attendance_service: [PARSE FAIL] Row 9 → 2026-04-06
+2026-04-07 20:41:12,109 [ERROR] services.attendance_service: [PARSE FAIL] Row 10 → 2026-04-06
+2026-04-07 20:41:12,109 [ERROR] services.attendance_service: [PARSE FAIL] Row 11 → 2026-04-06
+2026-04-07 20:41:12,109 [ERROR] services.attendance_service: [PARSE FAIL] Row 12 → 2026-04-06
+2026-04-07 20:41:12,110 [ERROR] services.attendance_service: [PARSE FAIL] Row 13 → 2026-04-06
+2026-04-07 20:41:12,110 [ERROR] services.attendance_service: [PARSE FAIL] Row 14 → 2026-04-06
+2026-04-07 20:41:12,110 [ERROR] services.attendance_service: [PARSE FAIL] Row 15 → 2026-04-06
+2026-04-07 20:41:12,111 [ERROR] services.attendance_service: [PARSE FAIL] Row 16 → 2026-04-05
+2026-04-07 20:41:12,111 [ERROR] services.attendance_service: [PARSE FAIL] Row 17 → 2026-04-05
+2026-04-07 20:41:12,111 [ERROR] services.attendance_service: [PARSE FAIL] Row 18 → 2026-04-05
+2026-04-07 20:41:12,111 [ERROR] services.attendance_service: [PARSE FAIL] Row 19 → 2026-04-05
+2026-04-07 20:41:12,112 [ERROR] services.attendance_service: [PARSE FAIL] Row 20 → 2026-04-05
+2026-04-07 20:41:12,112 [ERROR] services.attendance_service: [PARSE FAIL] Row 21 → 2026-04-05
+2026-04-07 20:41:12,112 [ERROR] services.attendance_service: [PARSE FAIL] Row 22 → 2026-04-05
+2026-04-07 20:41:12,112 [ERROR] services.attendance_service: [PARSE FAIL] Row 23 → 2026-04-05
+2026-04-07 20:41:12,113 [ERROR] services.attendance_service: [PARSE FAIL] Row 24 → 2026-04-04
+2026-04-07 20:41:12,113 [ERROR] services.attendance_service: [PARSE FAIL] Row 25 → 2026-04-04
+2026-04-07 20:41:12,113 [ERROR] services.attendance_service: [PARSE FAIL] Row 26 → 2026-04-04
+2026-04-07 20:41:12,113 [ERROR] services.attendance_service: [PARSE FAIL] Row 27 → 2026-04-04
+2026-04-07 20:41:12,114 [ERROR] services.attendance_service: [PARSE FAIL] Row 28 → 2026-04-04
+2026-04-07 20:41:12,114 [ERROR] services.attendance_service: [PARSE FAIL] Row 29 → 2026-04-04
+2026-04-07 20:41:12,114 [ERROR] services.attendance_service: [PARSE FAIL] Row 30 → 2026-04-04
+2026-04-07 20:41:12,114 [ERROR] services.attendance_service: [PARSE FAIL] Row 31 → 2026-04-04
+2026-04-07 20:41:12,115 [ERROR] services.attendance_service: [PARSE FAIL] Row 32 → 2026-04-03
+2026-04-07 20:41:12,115 [ERROR] services.attendance_service: [PARSE FAIL] Row 33 → 2026-04-03
+2026-04-07 20:41:12,115 [ERROR] services.attendance_service: [PARSE FAIL] Row 34 → 2026-04-03
+2026-04-07 20:41:12,116 [ERROR] services.attendance_service: [PARSE FAIL] Row 35 → 2026-04-03
+2026-04-07 20:41:12,117 [ERROR] services.attendance_service: [PARSE FAIL] Row 36 → 2026-04-03
+2026-04-07 20:41:12,117 [ERROR] services.attendance_service: [PARSE FAIL] Row 37 → 2026-04-03
+2026-04-07 20:41:12,118 [ERROR] services.attendance_service: [PARSE FAIL] Row 38 → 2026-04-03
+2026-04-07 20:41:12,118 [ERROR] services.attendance_service: [PARSE FAIL] Row 39 → 2026-04-03
+2026-04-07 20:41:12,118 [ERROR] services.attendance_service: [PARSE FAIL] Row 40 → 2026-04-02
+2026-04-07 20:41:12,118 [ERROR] services.attendance_service: [PARSE FAIL] Row 41 → 2026-04-02
+2026-04-07 20:41:12,119 [ERROR] services.attendance_service: [PARSE FAIL] Row 42 → 2026-04-02
+2026-04-07 20:41:12,119 [ERROR] services.attendance_service: [PARSE FAIL] Row 43 → 2026-04-02
+2026-04-07 20:41:12,119 [ERROR] services.attendance_service: [PARSE FAIL] Row 44 → 2026-04-02
+2026-04-07 20:41:12,119 [ERROR] services.attendance_service: [PARSE FAIL] Row 45 → 2026-04-02
+2026-04-07 20:41:12,120 [ERROR] services.attendance_service: [PARSE FAIL] Row 46 → 2026-04-02
+2026-04-07 20:41:12,120 [ERROR] services.attendance_service: [PARSE FAIL] Row 47 → 2026-04-02
+2026-04-07 20:41:12,120 [ERROR] services.attendance_service: [PARSE FAIL] Row 48 → 2026-04-01
+2026-04-07 20:41:12,120 [ERROR] services.attendance_service: [PARSE FAIL] Row 49 → 2026-04-01
+2026-04-07 20:41:12,121 [ERROR] services.attendance_service: [PARSE FAIL] Row 50 → 2026-04-01
+2026-04-07 20:41:12,121 [ERROR] services.attendance_service: [PARSE FAIL] Row 51 → 2026-04-01
+2026-04-07 20:41:12,121 [ERROR] services.attendance_service: [PARSE FAIL] Row 52 → 2026-04-01
+2026-04-07 20:41:12,121 [ERROR] services.attendance_service: [PARSE FAIL] Row 53 → 2026-04-01
+2026-04-07 20:41:12,121 [ERROR] services.attendance_service: [PARSE FAIL] Row 54 → 2026-04-01
+2026-04-07 20:41:12,122 [ERROR] services.attendance_service: [PARSE FAIL] Row 55 → 2026-04-01
+2026-04-07 20:41:12,122 [ERROR] services.attendance_service: [PARSE FAIL] Row 56 → 2026-03-31
+2026-04-07 20:41:12,122 [ERROR] services.attendance_service: [PARSE FAIL] Row 57 → 2026-03-31
+2026-04-07 20:41:12,122 [ERROR] services.attendance_service: [PARSE FAIL] Row 58 → 2026-03-31
+2026-04-07 20:41:12,123 [ERROR] services.attendance_service: [PARSE FAIL] Row 59 → 2026-03-31
+2026-04-07 20:41:12,123 [ERROR] services.attendance_service: [PARSE FAIL] Row 60 → 2026-03-31
+2026-04-07 20:41:12,123 [ERROR] services.attendance_service: [PARSE FAIL] Row 61 → 2026-03-31
+2026-04-07 20:41:12,124 [ERROR] services.attendance_service: [PARSE FAIL] Row 62 → 2026-03-31
+2026-04-07 20:41:12,124 [ERROR] services.attendance_service: [PARSE FAIL] Row 63 → 2026-03-31
+2026-04-07 20:41:12,124 [ERROR] services.attendance_service: [PARSE FAIL] Row 64 → 2026-03-30
+2026-04-07 20:41:12,124 [ERROR] services.attendance_service: [PARSE FAIL] Row 65 → 2026-03-30
+2026-04-07 20:41:12,124 [ERROR] services.attendance_service: [PARSE FAIL] Row 66 → 2026-03-30
+2026-04-07 20:41:12,125 [ERROR] services.attendance_service: [PARSE FAIL] Row 67 → 2026-03-30
+2026-04-07 20:41:12,125 [ERROR] services.attendance_service: [PARSE FAIL] Row 68 → 2026-03-30
+2026-04-07 20:41:12,125 [ERROR] services.attendance_service: [PARSE FAIL] Row 69 → 2026-03-30
+2026-04-07 20:41:12,126 [ERROR] services.attendance_service: [PARSE FAIL] Row 70 → 2026-03-30
+2026-04-07 20:41:12,126 [ERROR] services.attendance_service: [PARSE FAIL] Row 71 → 2026-03-30
+2026-04-07 20:41:12,126 [ERROR] services.attendance_service: [PARSE FAIL] Row 72 → 2026-03-29
+2026-04-07 20:41:12,126 [ERROR] services.attendance_service: [PARSE FAIL] Row 73 → 2026-03-29
+2026-04-07 20:41:12,126 [ERROR] services.attendance_service: [PARSE FAIL] Row 74 → 2026-03-29
+2026-04-07 20:41:12,127 [ERROR] services.attendance_service: [PARSE FAIL] Row 75 → 2026-03-29
+2026-04-07 20:41:12,127 [ERROR] services.attendance_service: [PARSE FAIL] Row 76 → 2026-03-29
+2026-04-07 20:41:12,127 [ERROR] services.attendance_service: [PARSE FAIL] Row 77 → 2026-03-29
+2026-04-07 20:41:12,127 [ERROR] services.attendance_service: [PARSE FAIL] Row 78 → 2026-03-29
+2026-04-07 20:41:12,128 [ERROR] services.attendance_service: [PARSE FAIL] Row 79 → 2026-03-29
+2026-04-07 22:02:19,872 [WARNING] services.attendance_service: No dominant format detected — will try all per row
+2026-04-07 22:02:19,876 [ERROR] services.attendance_service: [PARSE FAIL] Row 0 → 2026-04-07
+2026-04-07 22:02:19,877 [ERROR] services.attendance_service: [PARSE FAIL] Row 1 → 2026-04-07
+2026-04-07 22:02:19,877 [ERROR] services.attendance_service: [PARSE FAIL] Row 2 → 2026-04-07
+2026-04-07 22:02:19,878 [ERROR] services.attendance_service: [PARSE FAIL] Row 3 → 2026-04-07
+2026-04-07 22:02:19,878 [ERROR] services.attendance_service: [PARSE FAIL] Row 4 → 2026-04-07
+2026-04-07 22:02:19,879 [ERROR] services.attendance_service: [PARSE FAIL] Row 5 → 2026-04-07
+2026-04-07 22:02:19,879 [ERROR] services.attendance_service: [PARSE FAIL] Row 6 → 2026-04-07
+2026-04-07 22:02:19,880 [ERROR] services.attendance_service: [PARSE FAIL] Row 7 → 2026-04-07
+2026-04-07 22:02:19,881 [ERROR] services.attendance_service: [PARSE FAIL] Row 8 → 2026-04-06
+2026-04-07 22:02:19,882 [ERROR] services.attendance_service: [PARSE FAIL] Row 9 → 2026-04-06
+2026-04-07 22:02:19,882 [ERROR] services.attendance_service: [PARSE FAIL] Row 10 → 2026-04-06
+2026-04-07 22:02:19,882 [ERROR] services.attendance_service: [PARSE FAIL] Row 11 → 2026-04-06
+2026-04-07 22:02:19,883 [ERROR] services.attendance_service: [PARSE FAIL] Row 12 → 2026-04-06
+2026-04-07 22:02:19,884 [ERROR] services.attendance_service: [PARSE FAIL] Row 13 → 2026-04-06
+2026-04-07 22:02:19,886 [ERROR] services.attendance_service: [PARSE FAIL] Row 14 → 2026-04-06
+2026-04-07 22:02:19,886 [ERROR] services.attendance_service: [PARSE FAIL] Row 15 → 2026-04-06
+2026-04-07 22:02:19,886 [ERROR] services.attendance_service: [PARSE FAIL] Row 16 → 2026-04-05
+2026-04-07 22:02:19,887 [ERROR] services.attendance_service: [PARSE FAIL] Row 17 → 2026-04-05
+2026-04-07 22:02:19,887 [ERROR] services.attendance_service: [PARSE FAIL] Row 18 → 2026-04-05
+2026-04-07 22:02:19,887 [ERROR] services.attendance_service: [PARSE FAIL] Row 19 → 2026-04-05
+2026-04-07 22:02:19,888 [ERROR] services.attendance_service: [PARSE FAIL] Row 20 → 2026-04-05
+2026-04-07 22:02:19,889 [ERROR] services.attendance_service: [PARSE FAIL] Row 21 → 2026-04-05
+2026-04-07 22:02:19,890 [ERROR] services.attendance_service: [PARSE FAIL] Row 22 → 2026-04-05
+2026-04-07 22:02:19,891 [ERROR] services.attendance_service: [PARSE FAIL] Row 23 → 2026-04-05
+2026-04-07 22:02:19,891 [ERROR] services.attendance_service: [PARSE FAIL] Row 24 → 2026-04-04
+2026-04-07 22:02:19,892 [ERROR] services.attendance_service: [PARSE FAIL] Row 25 → 2026-04-04
+2026-04-07 22:02:19,892 [ERROR] services.attendance_service: [PARSE FAIL] Row 26 → 2026-04-04
+2026-04-07 22:02:19,892 [ERROR] services.attendance_service: [PARSE FAIL] Row 27 → 2026-04-04
+2026-04-07 22:02:19,892 [ERROR] services.attendance_service: [PARSE FAIL] Row 28 → 2026-04-04
+2026-04-07 22:02:19,893 [ERROR] services.attendance_service: [PARSE FAIL] Row 29 → 2026-04-04
+2026-04-07 22:02:19,893 [ERROR] services.attendance_service: [PARSE FAIL] Row 30 → 2026-04-04
+2026-04-07 22:02:19,893 [ERROR] services.attendance_service: [PARSE FAIL] Row 31 → 2026-04-04
+2026-04-07 22:02:19,894 [ERROR] services.attendance_service: [PARSE FAIL] Row 32 → 2026-04-03
+2026-04-07 22:02:19,894 [ERROR] services.attendance_service: [PARSE FAIL] Row 33 → 2026-04-03
+2026-04-07 22:02:19,894 [ERROR] services.attendance_service: [PARSE FAIL] Row 34 → 2026-04-03
+2026-04-07 22:02:19,895 [ERROR] services.attendance_service: [PARSE FAIL] Row 35 → 2026-04-03
+2026-04-07 22:02:19,896 [ERROR] services.attendance_service: [PARSE FAIL] Row 36 → 2026-04-03
+2026-04-07 22:02:19,897 [ERROR] services.attendance_service: [PARSE FAIL] Row 37 → 2026-04-03
+2026-04-07 22:02:19,897 [ERROR] services.attendance_service: [PARSE FAIL] Row 38 → 2026-04-03
+2026-04-07 22:02:19,897 [ERROR] services.attendance_service: [PARSE FAIL] Row 39 → 2026-04-03
+2026-04-07 22:02:19,898 [ERROR] services.attendance_service: [PARSE FAIL] Row 40 → 2026-04-02
+2026-04-07 22:02:19,898 [ERROR] services.attendance_service: [PARSE FAIL] Row 41 → 2026-04-02
+2026-04-07 22:02:19,898 [ERROR] services.attendance_service: [PARSE FAIL] Row 42 → 2026-04-02
+2026-04-07 22:02:19,898 [ERROR] services.attendance_service: [PARSE FAIL] Row 43 → 2026-04-02
+2026-04-07 22:02:19,899 [ERROR] services.attendance_service: [PARSE FAIL] Row 44 → 2026-04-02
+2026-04-07 22:02:19,899 [ERROR] services.attendance_service: [PARSE FAIL] Row 45 → 2026-04-02
+2026-04-07 22:02:19,899 [ERROR] services.attendance_service: [PARSE FAIL] Row 46 → 2026-04-02
+2026-04-07 22:02:19,899 [ERROR] services.attendance_service: [PARSE FAIL] Row 47 → 2026-04-02
+2026-04-07 22:02:19,900 [ERROR] services.attendance_service: [PARSE FAIL] Row 48 → 2026-04-01
+2026-04-07 22:02:19,900 [ERROR] services.attendance_service: [PARSE FAIL] Row 49 → 2026-04-01
+2026-04-07 22:02:19,900 [ERROR] services.attendance_service: [PARSE FAIL] Row 50 → 2026-04-01
+2026-04-07 22:02:19,900 [ERROR] services.attendance_service: [PARSE FAIL] Row 51 → 2026-04-01
+2026-04-07 22:02:19,901 [ERROR] services.attendance_service: [PARSE FAIL] Row 52 → 2026-04-01
+2026-04-07 22:02:19,901 [ERROR] services.attendance_service: [PARSE FAIL] Row 53 → 2026-04-01
+2026-04-07 22:02:19,901 [ERROR] services.attendance_service: [PARSE FAIL] Row 54 → 2026-04-01
+2026-04-07 22:02:19,902 [ERROR] services.attendance_service: [PARSE FAIL] Row 55 → 2026-04-01
+2026-04-07 22:02:19,902 [ERROR] services.attendance_service: [PARSE FAIL] Row 56 → 2026-03-31
+2026-04-07 22:02:19,903 [ERROR] services.attendance_service: [PARSE FAIL] Row 57 → 2026-03-31
+2026-04-07 22:02:19,904 [ERROR] services.attendance_service: [PARSE FAIL] Row 58 → 2026-03-31
+2026-04-07 22:02:19,904 [ERROR] services.attendance_service: [PARSE FAIL] Row 59 → 2026-03-31
+2026-04-07 22:02:19,905 [ERROR] services.attendance_service: [PARSE FAIL] Row 60 → 2026-03-31
+2026-04-07 22:02:19,905 [ERROR] services.attendance_service: [PARSE FAIL] Row 61 → 2026-03-31
+2026-04-07 22:02:19,905 [ERROR] services.attendance_service: [PARSE FAIL] Row 62 → 2026-03-31
+2026-04-07 22:02:19,906 [ERROR] services.attendance_service: [PARSE FAIL] Row 63 → 2026-03-31
+2026-04-07 22:02:19,906 [ERROR] services.attendance_service: [PARSE FAIL] Row 64 → 2026-03-30
+2026-04-07 22:02:19,906 [ERROR] services.attendance_service: [PARSE FAIL] Row 65 → 2026-03-30
+2026-04-07 22:02:19,906 [ERROR] services.attendance_service: [PARSE FAIL] Row 66 → 2026-03-30
+2026-04-07 22:02:19,907 [ERROR] services.attendance_service: [PARSE FAIL] Row 67 → 2026-03-30
+2026-04-07 22:02:19,907 [ERROR] services.attendance_service: [PARSE FAIL] Row 68 → 2026-03-30
+2026-04-07 22:02:19,907 [ERROR] services.attendance_service: [PARSE FAIL] Row 69 → 2026-03-30
+2026-04-07 22:02:19,907 [ERROR] services.attendance_service: [PARSE FAIL] Row 70 → 2026-03-30
+2026-04-07 22:02:19,908 [ERROR] services.attendance_service: [PARSE FAIL] Row 71 → 2026-03-30
+2026-04-07 22:02:19,908 [ERROR] services.attendance_service: [PARSE FAIL] Row 72 → 2026-03-29
+2026-04-07 22:02:19,908 [ERROR] services.attendance_service: [PARSE FAIL] Row 73 → 2026-03-29
+2026-04-07 22:02:19,909 [ERROR] services.attendance_service: [PARSE FAIL] Row 74 → 2026-03-29
+2026-04-07 22:02:19,909 [ERROR] services.attendance_service: [PARSE FAIL] Row 75 → 2026-03-29
+2026-04-07 22:02:19,909 [ERROR] services.attendance_service: [PARSE FAIL] Row 76 → 2026-03-29
+2026-04-07 22:02:19,910 [ERROR] services.attendance_service: [PARSE FAIL] Row 77 → 2026-03-29
+2026-04-07 22:02:19,910 [ERROR] services.attendance_service: [PARSE FAIL] Row 78 → 2026-03-29
+2026-04-07 22:02:19,911 [ERROR] services.attendance_service: [PARSE FAIL] Row 79 → 2026-03-29
+2026-04-07 22:07:19,524 [INFO] services.attendance_service: Detected timestamp format: %Y-%m-%d %H:%M:%S
+2026-04-07 22:07:19,529 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-07 09:12:00 parsed=2026-04-07 09:12:00
+2026-04-07 22:07:19,529 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-07 22:07:19,529 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-07 22:07:19,542 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-07 17:18:00 parsed=2026-04-07 17:18:00
+2026-04-07 22:07:19,542 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-07 22:07:19,542 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-07 22:07:19,543 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-07 09:05:00 parsed=2026-04-07 09:05:00
+2026-04-07 22:07:19,543 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-07 22:07:19,543 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-07 22:07:19,543 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-07 17:00:00 parsed=2026-04-07 17:00:00
+2026-04-07 22:07:19,543 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-07 22:07:19,543 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-07 22:07:19,544 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-07 09:11:00 parsed=2026-04-07 09:11:00
+2026-04-07 22:07:19,544 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-07 22:07:19,544 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-07 22:07:19,544 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-07 17:08:00 parsed=2026-04-07 17:08:00
+2026-04-07 22:07:19,544 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-07 22:07:19,544 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-07 22:07:19,545 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-07 09:21:00 parsed=2026-04-07 09:21:00
+2026-04-07 22:07:19,545 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-07 22:07:19,545 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-07 22:07:19,545 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-07 17:30:00 parsed=2026-04-07 17:30:00
+2026-04-07 22:07:19,545 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-07 22:07:19,545 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-07 22:07:19,546 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-06 09:18:00 parsed=2026-04-06 09:18:00
+2026-04-07 22:07:19,546 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-07 22:07:19,546 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-07 22:07:19,546 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-06 17:08:00 parsed=2026-04-06 17:08:00
+2026-04-07 22:07:19,546 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-07 22:07:19,546 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-07 22:07:19,546 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-06 09:11:00 parsed=2026-04-06 09:11:00
+2026-04-07 22:07:19,546 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-07 22:07:19,546 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-07 22:07:19,547 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-06 17:23:00 parsed=2026-04-06 17:23:00
+2026-04-07 22:07:19,547 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-07 22:07:19,547 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-07 22:07:19,548 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-06 09:22:00 parsed=2026-04-06 09:22:00
+2026-04-07 22:07:19,548 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-07 22:07:19,548 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-07 22:07:19,549 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-06 17:29:00 parsed=2026-04-06 17:29:00
+2026-04-07 22:07:19,549 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-07 22:07:19,549 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-07 22:07:19,550 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-06 09:29:00 parsed=2026-04-06 09:29:00
+2026-04-07 22:07:19,550 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-07 22:07:19,550 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-07 22:07:19,551 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-06 17:04:00 parsed=2026-04-06 17:04:00
+2026-04-07 22:07:19,551 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-07 22:07:19,551 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-07 22:07:19,551 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-05 09:26:00 parsed=2026-04-05 09:26:00
+2026-04-07 22:07:19,551 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-07 22:07:19,551 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-07 22:07:19,552 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-05 17:17:00 parsed=2026-04-05 17:17:00
+2026-04-07 22:07:19,552 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-07 22:07:19,552 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-07 22:07:19,554 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-05 09:05:00 parsed=2026-04-05 09:05:00
+2026-04-07 22:07:19,554 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-07 22:07:19,554 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-07 22:07:19,554 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-05 17:04:00 parsed=2026-04-05 17:04:00
+2026-04-07 22:07:19,554 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-07 22:07:19,554 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-07 22:07:19,555 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-05 09:25:00 parsed=2026-04-05 09:25:00
+2026-04-07 22:07:19,555 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-07 22:07:19,555 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-07 22:07:19,555 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-05 17:30:00 parsed=2026-04-05 17:30:00
+2026-04-07 22:07:19,555 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-07 22:07:19,555 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-07 22:07:19,556 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-05 09:29:00 parsed=2026-04-05 09:29:00
+2026-04-07 22:07:19,556 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-07 22:07:19,556 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-07 22:07:19,556 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-05 17:13:00 parsed=2026-04-05 17:13:00
+2026-04-07 22:07:19,556 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-07 22:07:19,556 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-07 22:07:19,557 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-04 09:18:00 parsed=2026-04-04 09:18:00
+2026-04-07 22:07:19,557 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-07 22:07:19,557 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-07 22:07:19,558 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-04 17:22:00 parsed=2026-04-04 17:22:00
+2026-04-07 22:07:19,558 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-07 22:07:19,559 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-07 22:07:19,559 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-04 09:13:00 parsed=2026-04-04 09:13:00
+2026-04-07 22:07:19,559 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-07 22:07:19,559 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-07 22:07:19,559 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-04 17:16:00 parsed=2026-04-04 17:16:00
+2026-04-07 22:07:19,560 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-07 22:07:19,560 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-07 22:07:19,560 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-04 09:02:00 parsed=2026-04-04 09:02:00
+2026-04-07 22:07:19,560 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-07 22:07:19,560 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-07 22:07:19,560 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-04 17:09:00 parsed=2026-04-04 17:09:00
+2026-04-07 22:07:19,560 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-07 22:07:19,560 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-07 22:07:19,561 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-04 09:26:00 parsed=2026-04-04 09:26:00
+2026-04-07 22:07:19,561 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-07 22:07:19,561 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-07 22:07:19,561 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-04 17:13:00 parsed=2026-04-04 17:13:00
+2026-04-07 22:07:19,561 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-07 22:07:19,561 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-07 22:07:19,562 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-03 09:00:00 parsed=2026-04-03 09:00:00
+2026-04-07 22:07:19,562 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-07 22:07:19,562 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-07 22:07:19,562 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-03 17:29:00 parsed=2026-04-03 17:29:00
+2026-04-07 22:07:19,562 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-07 22:07:19,562 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-07 22:07:19,562 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-03 09:00:00 parsed=2026-04-03 09:00:00
+2026-04-07 22:07:19,562 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-07 22:07:19,562 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-07 22:07:19,563 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-03 17:06:00 parsed=2026-04-03 17:06:00
+2026-04-07 22:07:19,563 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-07 22:07:19,563 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-07 22:07:19,564 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-03 09:00:00 parsed=2026-04-03 09:00:00
+2026-04-07 22:07:19,564 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-07 22:07:19,564 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-07 22:07:19,564 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-03 17:17:00 parsed=2026-04-03 17:17:00
+2026-04-07 22:07:19,564 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-07 22:07:19,564 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-07 22:07:19,564 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-03 09:16:00 parsed=2026-04-03 09:16:00
+2026-04-07 22:07:19,565 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-07 22:07:19,565 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-07 22:07:19,565 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-03 17:14:00 parsed=2026-04-03 17:14:00
+2026-04-07 22:07:19,565 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-07 22:07:19,565 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-07 22:07:19,566 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-02 09:07:00 parsed=2026-04-02 09:07:00
+2026-04-07 22:07:19,566 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-07 22:07:19,566 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-07 22:07:19,566 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-02 17:07:00 parsed=2026-04-02 17:07:00
+2026-04-07 22:07:19,566 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-07 22:07:19,566 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-07 22:07:19,566 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-02 09:01:00 parsed=2026-04-02 09:01:00
+2026-04-07 22:07:19,566 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-07 22:07:19,566 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-07 22:07:19,567 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-02 17:01:00 parsed=2026-04-02 17:01:00
+2026-04-07 22:07:19,567 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-07 22:07:19,567 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-07 22:07:19,568 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-02 09:15:00 parsed=2026-04-02 09:15:00
+2026-04-07 22:07:19,568 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-07 22:07:19,568 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-07 22:07:19,568 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-02 17:09:00 parsed=2026-04-02 17:09:00
+2026-04-07 22:07:19,568 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-07 22:07:19,568 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-07 22:07:19,568 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-02 09:16:00 parsed=2026-04-02 09:16:00
+2026-04-07 22:07:19,568 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-07 22:07:19,568 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-07 22:07:19,569 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-02 17:10:00 parsed=2026-04-02 17:10:00
+2026-04-07 22:07:19,569 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-07 22:07:19,569 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-07 22:07:19,569 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-01 09:27:00 parsed=2026-04-01 09:27:00
+2026-04-07 22:07:19,569 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-07 22:07:19,569 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-07 22:07:19,569 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-01 17:15:00 parsed=2026-04-01 17:15:00
+2026-04-07 22:07:19,569 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-07 22:07:19,569 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-07 22:07:19,570 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-01 09:10:00 parsed=2026-04-01 09:10:00
+2026-04-07 22:07:19,570 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-07 22:07:19,570 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-07 22:07:19,570 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-01 17:23:00 parsed=2026-04-01 17:23:00
+2026-04-07 22:07:19,570 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-07 22:07:19,570 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-07 22:07:19,570 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-01 09:03:00 parsed=2026-04-01 09:03:00
+2026-04-07 22:07:19,570 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-07 22:07:19,570 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-07 22:07:19,570 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-01 17:27:00 parsed=2026-04-01 17:27:00
+2026-04-07 22:07:19,571 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-07 22:07:19,571 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-07 22:07:19,571 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-01 09:21:00 parsed=2026-04-01 09:21:00
+2026-04-07 22:07:19,571 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-07 22:07:19,571 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-07 22:07:19,571 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-01 17:06:00 parsed=2026-04-01 17:06:00
+2026-04-07 22:07:19,571 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-07 22:07:19,571 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-07 22:07:19,572 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-03-31 09:17:00 parsed=2026-03-31 09:17:00
+2026-04-07 22:07:19,572 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-07 22:07:19,572 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-07 22:07:19,573 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-03-31 17:20:00 parsed=2026-03-31 17:20:00
+2026-04-07 22:07:19,573 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-07 22:07:19,573 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-07 22:07:19,574 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-03-31 09:24:00 parsed=2026-03-31 09:24:00
+2026-04-07 22:07:19,574 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-07 22:07:19,574 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-07 22:07:19,574 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-03-31 17:11:00 parsed=2026-03-31 17:11:00
+2026-04-07 22:07:19,574 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-07 22:07:19,574 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-07 22:07:19,575 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-03-31 09:10:00 parsed=2026-03-31 09:10:00
+2026-04-07 22:07:19,575 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-07 22:07:19,575 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-07 22:07:19,575 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-03-31 17:10:00 parsed=2026-03-31 17:10:00
+2026-04-07 22:07:19,575 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-07 22:07:19,575 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-07 22:07:19,575 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-03-31 09:00:00 parsed=2026-03-31 09:00:00
+2026-04-07 22:07:19,575 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-07 22:07:19,576 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-07 22:07:19,576 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-03-31 17:11:00 parsed=2026-03-31 17:11:00
+2026-04-07 22:07:19,576 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-07 22:07:19,576 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-07 22:07:19,576 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-03-30 09:08:00 parsed=2026-03-30 09:08:00
+2026-04-07 22:07:19,576 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-07 22:07:19,576 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-07 22:07:19,577 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-03-30 17:11:00 parsed=2026-03-30 17:11:00
+2026-04-07 22:07:19,577 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-07 22:07:19,577 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-07 22:07:19,577 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-03-30 09:06:00 parsed=2026-03-30 09:06:00
+2026-04-07 22:07:19,577 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-07 22:07:19,577 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-07 22:07:19,578 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-03-30 17:25:00 parsed=2026-03-30 17:25:00
+2026-04-07 22:07:19,578 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-07 22:07:19,578 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-07 22:07:19,578 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-03-30 09:13:00 parsed=2026-03-30 09:13:00
+2026-04-07 22:07:19,578 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-07 22:07:19,578 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-07 22:07:19,578 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-03-30 17:20:00 parsed=2026-03-30 17:20:00
+2026-04-07 22:07:19,578 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-07 22:07:19,578 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-07 22:07:19,579 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-03-30 09:14:00 parsed=2026-03-30 09:14:00
+2026-04-07 22:07:19,579 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-07 22:07:19,579 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-07 22:07:19,579 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-03-30 17:08:00 parsed=2026-03-30 17:08:00
+2026-04-07 22:07:19,579 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-07 22:07:19,579 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-07 22:07:19,579 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-03-29 09:19:00 parsed=2026-03-29 09:19:00
+2026-04-07 22:07:19,579 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-07 22:07:19,579 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-07 22:07:19,579 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-03-29 17:00:00 parsed=2026-03-29 17:00:00
+2026-04-07 22:07:19,579 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-07 22:07:19,579 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-07 22:07:19,580 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-03-29 09:23:00 parsed=2026-03-29 09:23:00
+2026-04-07 22:07:19,580 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-07 22:07:19,580 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-07 22:07:19,580 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-03-29 17:07:00 parsed=2026-03-29 17:07:00
+2026-04-07 22:07:19,580 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-07 22:07:19,580 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-07 22:07:19,580 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-03-29 09:10:00 parsed=2026-03-29 09:10:00
+2026-04-07 22:07:19,580 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-07 22:07:19,580 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-07 22:07:19,580 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-03-29 17:23:00 parsed=2026-03-29 17:23:00
+2026-04-07 22:07:19,581 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-07 22:07:19,581 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-07 22:07:19,581 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-03-29 09:26:00 parsed=2026-03-29 09:26:00
+2026-04-07 22:07:19,581 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-07 22:07:19,581 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-07 22:07:19,581 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-03-29 17:05:00 parsed=2026-03-29 17:05:00
+2026-04-07 22:07:19,581 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-07 22:07:19,581 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-07 22:12:27,164 [INFO] services.export_service: Student profile PDF: /Users/sickboi/Desktop/gurukul/student_profile_1.pdf
+2026-04-08 05:53:50,078 [INFO] services.expense_service: Expense 4: rent 30000 Rs.5000.0
+2026-04-08 06:28:08,035 [INFO] services.attendance_service: Detected timestamp format: %Y-%m-%d %H:%M:%S
+2026-04-08 06:28:08,041 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-07 09:12:00 parsed=2026-04-07 09:12:00
+2026-04-08 06:28:08,041 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-08 06:28:08,041 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-08 06:28:08,046 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-07 17:18:00 parsed=2026-04-07 17:18:00
+2026-04-08 06:28:08,046 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-08 06:28:08,046 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-08 06:28:08,048 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-07 09:05:00 parsed=2026-04-07 09:05:00
+2026-04-08 06:28:08,048 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-08 06:28:08,048 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-08 06:28:08,048 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-07 17:00:00 parsed=2026-04-07 17:00:00
+2026-04-08 06:28:08,049 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-08 06:28:08,049 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-08 06:28:08,049 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-07 09:11:00 parsed=2026-04-07 09:11:00
+2026-04-08 06:28:08,049 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-08 06:28:08,050 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-08 06:28:08,050 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-07 17:08:00 parsed=2026-04-07 17:08:00
+2026-04-08 06:28:08,050 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-08 06:28:08,050 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-08 06:28:08,051 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-07 09:21:00 parsed=2026-04-07 09:21:00
+2026-04-08 06:28:08,051 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-08 06:28:08,051 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-08 06:28:08,052 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-07 17:30:00 parsed=2026-04-07 17:30:00
+2026-04-08 06:28:08,052 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-07
+2026-04-08 06:28:08,052 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-07 → BS=2082-12-24
+2026-04-08 06:28:08,053 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-06 09:18:00 parsed=2026-04-06 09:18:00
+2026-04-08 06:28:08,053 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-08 06:28:08,053 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-08 06:28:08,053 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-06 17:08:00 parsed=2026-04-06 17:08:00
+2026-04-08 06:28:08,053 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-08 06:28:08,054 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-08 06:28:08,054 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-06 09:11:00 parsed=2026-04-06 09:11:00
+2026-04-08 06:28:08,054 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-08 06:28:08,054 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-08 06:28:08,054 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-06 17:23:00 parsed=2026-04-06 17:23:00
+2026-04-08 06:28:08,054 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-08 06:28:08,054 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-08 06:28:08,055 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-06 09:22:00 parsed=2026-04-06 09:22:00
+2026-04-08 06:28:08,055 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-08 06:28:08,055 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-08 06:28:08,055 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-06 17:29:00 parsed=2026-04-06 17:29:00
+2026-04-08 06:28:08,055 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-08 06:28:08,055 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-08 06:28:08,056 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-06 09:29:00 parsed=2026-04-06 09:29:00
+2026-04-08 06:28:08,056 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-08 06:28:08,056 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-08 06:28:08,056 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-06 17:04:00 parsed=2026-04-06 17:04:00
+2026-04-08 06:28:08,056 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-06
+2026-04-08 06:28:08,056 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-06 → BS=2082-12-23
+2026-04-08 06:28:08,057 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-05 09:26:00 parsed=2026-04-05 09:26:00
+2026-04-08 06:28:08,057 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-08 06:28:08,057 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-08 06:28:08,058 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-05 17:17:00 parsed=2026-04-05 17:17:00
+2026-04-08 06:28:08,058 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-08 06:28:08,058 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-08 06:28:08,058 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-05 09:05:00 parsed=2026-04-05 09:05:00
+2026-04-08 06:28:08,058 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-08 06:28:08,058 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-08 06:28:08,059 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-05 17:04:00 parsed=2026-04-05 17:04:00
+2026-04-08 06:28:08,059 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-08 06:28:08,059 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-08 06:28:08,059 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-05 09:25:00 parsed=2026-04-05 09:25:00
+2026-04-08 06:28:08,059 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-08 06:28:08,059 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-08 06:28:08,060 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-05 17:30:00 parsed=2026-04-05 17:30:00
+2026-04-08 06:28:08,060 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-08 06:28:08,060 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-08 06:28:08,060 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-05 09:29:00 parsed=2026-04-05 09:29:00
+2026-04-08 06:28:08,060 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-08 06:28:08,060 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-08 06:28:08,061 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-05 17:13:00 parsed=2026-04-05 17:13:00
+2026-04-08 06:28:08,061 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-05
+2026-04-08 06:28:08,061 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-05 → BS=2082-12-22
+2026-04-08 06:28:08,061 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-04 09:18:00 parsed=2026-04-04 09:18:00
+2026-04-08 06:28:08,061 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-08 06:28:08,061 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-08 06:28:08,062 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-04 17:22:00 parsed=2026-04-04 17:22:00
+2026-04-08 06:28:08,062 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-08 06:28:08,062 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-08 06:28:08,062 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-04 09:13:00 parsed=2026-04-04 09:13:00
+2026-04-08 06:28:08,062 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-08 06:28:08,062 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-08 06:28:08,063 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-04 17:16:00 parsed=2026-04-04 17:16:00
+2026-04-08 06:28:08,063 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-08 06:28:08,063 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-08 06:28:08,063 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-04 09:02:00 parsed=2026-04-04 09:02:00
+2026-04-08 06:28:08,063 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-08 06:28:08,063 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-08 06:28:08,064 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-04 17:09:00 parsed=2026-04-04 17:09:00
+2026-04-08 06:28:08,064 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-08 06:28:08,064 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-08 06:28:08,064 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-04 09:26:00 parsed=2026-04-04 09:26:00
+2026-04-08 06:28:08,064 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-08 06:28:08,064 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-08 06:28:08,064 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-04 17:13:00 parsed=2026-04-04 17:13:00
+2026-04-08 06:28:08,064 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-04
+2026-04-08 06:28:08,064 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-04 → BS=2082-12-21
+2026-04-08 06:28:08,065 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-03 09:00:00 parsed=2026-04-03 09:00:00
+2026-04-08 06:28:08,065 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-08 06:28:08,065 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-08 06:28:08,065 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-03 17:29:00 parsed=2026-04-03 17:29:00
+2026-04-08 06:28:08,065 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-08 06:28:08,065 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-08 06:28:08,066 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-03 09:00:00 parsed=2026-04-03 09:00:00
+2026-04-08 06:28:08,066 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-08 06:28:08,066 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-08 06:28:08,066 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-03 17:06:00 parsed=2026-04-03 17:06:00
+2026-04-08 06:28:08,066 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-08 06:28:08,066 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-08 06:28:08,067 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-03 09:00:00 parsed=2026-04-03 09:00:00
+2026-04-08 06:28:08,067 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-08 06:28:08,067 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-08 06:28:08,067 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-03 17:17:00 parsed=2026-04-03 17:17:00
+2026-04-08 06:28:08,067 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-08 06:28:08,067 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-08 06:28:08,067 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-03 09:16:00 parsed=2026-04-03 09:16:00
+2026-04-08 06:28:08,067 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-08 06:28:08,067 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-08 06:28:08,068 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-03 17:14:00 parsed=2026-04-03 17:14:00
+2026-04-08 06:28:08,068 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-03
+2026-04-08 06:28:08,068 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-03 → BS=2082-12-20
+2026-04-08 06:28:08,068 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-02 09:07:00 parsed=2026-04-02 09:07:00
+2026-04-08 06:28:08,068 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-08 06:28:08,068 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-08 06:28:08,068 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-02 17:07:00 parsed=2026-04-02 17:07:00
+2026-04-08 06:28:08,069 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-08 06:28:08,069 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-08 06:28:08,069 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-02 09:01:00 parsed=2026-04-02 09:01:00
+2026-04-08 06:28:08,069 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-08 06:28:08,069 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-08 06:28:08,069 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-02 17:01:00 parsed=2026-04-02 17:01:00
+2026-04-08 06:28:08,069 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-08 06:28:08,069 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-08 06:28:08,070 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-02 09:15:00 parsed=2026-04-02 09:15:00
+2026-04-08 06:28:08,070 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-08 06:28:08,070 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-08 06:28:08,070 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-02 17:09:00 parsed=2026-04-02 17:09:00
+2026-04-08 06:28:08,070 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-08 06:28:08,070 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-08 06:28:08,070 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-02 09:16:00 parsed=2026-04-02 09:16:00
+2026-04-08 06:28:08,070 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-08 06:28:08,070 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-08 06:28:08,070 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-02 17:10:00 parsed=2026-04-02 17:10:00
+2026-04-08 06:28:08,070 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-02
+2026-04-08 06:28:08,071 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-02 → BS=2082-12-19
+2026-04-08 06:28:08,071 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-01 09:27:00 parsed=2026-04-01 09:27:00
+2026-04-08 06:28:08,071 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-08 06:28:08,071 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-08 06:28:08,071 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-04-01 17:15:00 parsed=2026-04-01 17:15:00
+2026-04-08 06:28:08,072 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-08 06:28:08,072 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-08 06:28:08,072 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-01 09:10:00 parsed=2026-04-01 09:10:00
+2026-04-08 06:28:08,072 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-08 06:28:08,072 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-08 06:28:08,072 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-04-01 17:23:00 parsed=2026-04-01 17:23:00
+2026-04-08 06:28:08,072 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-08 06:28:08,072 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-08 06:28:08,073 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-01 09:03:00 parsed=2026-04-01 09:03:00
+2026-04-08 06:28:08,073 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-08 06:28:08,073 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-08 06:28:08,073 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-04-01 17:27:00 parsed=2026-04-01 17:27:00
+2026-04-08 06:28:08,073 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-08 06:28:08,073 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-08 06:28:08,073 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-01 09:21:00 parsed=2026-04-01 09:21:00
+2026-04-08 06:28:08,073 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-08 06:28:08,073 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-08 06:28:08,074 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-04-01 17:06:00 parsed=2026-04-01 17:06:00
+2026-04-08 06:28:08,074 [INFO] services.attendance_service: [DATE CHECK] AD=2026-04-01
+2026-04-08 06:28:08,074 [INFO] services.attendance_service: [BS CHECK] AD=2026-04-01 → BS=2082-12-18
+2026-04-08 06:28:08,074 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-03-31 09:17:00 parsed=2026-03-31 09:17:00
+2026-04-08 06:28:08,074 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-08 06:28:08,074 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-08 06:28:08,074 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-03-31 17:20:00 parsed=2026-03-31 17:20:00
+2026-04-08 06:28:08,074 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-08 06:28:08,074 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-08 06:28:08,074 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-03-31 09:24:00 parsed=2026-03-31 09:24:00
+2026-04-08 06:28:08,074 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-08 06:28:08,075 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-08 06:28:08,075 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-03-31 17:11:00 parsed=2026-03-31 17:11:00
+2026-04-08 06:28:08,075 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-08 06:28:08,075 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-08 06:28:08,075 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-03-31 09:10:00 parsed=2026-03-31 09:10:00
+2026-04-08 06:28:08,075 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-08 06:28:08,075 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-08 06:28:08,075 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-03-31 17:10:00 parsed=2026-03-31 17:10:00
+2026-04-08 06:28:08,075 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-08 06:28:08,076 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-08 06:28:08,076 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-03-31 09:00:00 parsed=2026-03-31 09:00:00
+2026-04-08 06:28:08,076 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-08 06:28:08,076 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-08 06:28:08,076 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-03-31 17:11:00 parsed=2026-03-31 17:11:00
+2026-04-08 06:28:08,076 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-31
+2026-04-08 06:28:08,076 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-31 → BS=2082-12-17
+2026-04-08 06:28:08,077 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-03-30 09:08:00 parsed=2026-03-30 09:08:00
+2026-04-08 06:28:08,077 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-08 06:28:08,077 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-08 06:28:08,077 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-03-30 17:11:00 parsed=2026-03-30 17:11:00
+2026-04-08 06:28:08,077 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-08 06:28:08,077 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-08 06:28:08,078 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-03-30 09:06:00 parsed=2026-03-30 09:06:00
+2026-04-08 06:28:08,078 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-08 06:28:08,078 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-08 06:28:08,078 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-03-30 17:25:00 parsed=2026-03-30 17:25:00
+2026-04-08 06:28:08,078 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-08 06:28:08,078 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-08 06:28:08,079 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-03-30 09:13:00 parsed=2026-03-30 09:13:00
+2026-04-08 06:28:08,079 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-08 06:28:08,079 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-08 06:28:08,080 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-03-30 17:20:00 parsed=2026-03-30 17:20:00
+2026-04-08 06:28:08,080 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-08 06:28:08,080 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-08 06:28:08,080 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-03-30 09:14:00 parsed=2026-03-30 09:14:00
+2026-04-08 06:28:08,080 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-08 06:28:08,080 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-08 06:28:08,081 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-03-30 17:08:00 parsed=2026-03-30 17:08:00
+2026-04-08 06:28:08,081 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-30
+2026-04-08 06:28:08,081 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-30 → BS=2082-12-16
+2026-04-08 06:28:08,081 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-03-29 09:19:00 parsed=2026-03-29 09:19:00
+2026-04-08 06:28:08,081 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-08 06:28:08,081 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-08 06:28:08,082 [INFO] services.attendance_service: [ROW CHECK] uid=1001 raw=2026-03-29 17:00:00 parsed=2026-03-29 17:00:00
+2026-04-08 06:28:08,082 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-08 06:28:08,082 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-08 06:28:08,083 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-03-29 09:23:00 parsed=2026-03-29 09:23:00
+2026-04-08 06:28:08,083 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-08 06:28:08,083 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-08 06:28:08,084 [INFO] services.attendance_service: [ROW CHECK] uid=1002 raw=2026-03-29 17:07:00 parsed=2026-03-29 17:07:00
+2026-04-08 06:28:08,084 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-08 06:28:08,084 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-08 06:28:08,084 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-03-29 09:10:00 parsed=2026-03-29 09:10:00
+2026-04-08 06:28:08,084 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-08 06:28:08,084 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-08 06:28:08,085 [INFO] services.attendance_service: [ROW CHECK] uid=1003 raw=2026-03-29 17:23:00 parsed=2026-03-29 17:23:00
+2026-04-08 06:28:08,085 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-08 06:28:08,085 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-08 06:28:08,085 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-03-29 09:26:00 parsed=2026-03-29 09:26:00
+2026-04-08 06:28:08,085 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-08 06:28:08,085 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15
+2026-04-08 06:28:08,086 [INFO] services.attendance_service: [ROW CHECK] uid=1004 raw=2026-03-29 17:05:00 parsed=2026-03-29 17:05:00
+2026-04-08 06:28:08,086 [INFO] services.attendance_service: [DATE CHECK] AD=2026-03-29
+2026-04-08 06:28:08,086 [INFO] services.attendance_service: [BS CHECK] AD=2026-03-29 → BS=2082-12-15

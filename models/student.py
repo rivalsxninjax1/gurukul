@@ -6,16 +6,18 @@ from database.connection import Base
 class Student(Base):
     __tablename__ = "students"
 
-    id         = Column(Integer, primary_key=True, autoincrement=True)
-    user_id    = Column(String(50), unique=True, nullable=False)
-    name       = Column(String(150), nullable=False)
-    dob        = Column(Date)
-    phone      = Column(String(20))
-    address    = Column(String(300))
-    join_date  = Column(Date)
-    photo_path = Column(String(300))
-    class_id   = Column(Integer, ForeignKey("classes.id"))
-    group_id   = Column(Integer, ForeignKey("groups.id"))
+    id               = Column(Integer, primary_key=True, autoincrement=True)
+    user_id          = Column(String(50), unique=True, nullable=False)
+    name             = Column(String(150), nullable=False)
+    dob              = Column(Date)
+    phone            = Column(String(20))
+    address          = Column(String(300))
+    guardian_name    = Column(String(150))
+    whatsapp_number  = Column(String(20))
+    join_date        = Column(Date)
+    photo_path       = Column(String(300))
+    class_id         = Column(Integer, ForeignKey("classes.id"))
+    group_id         = Column(Integer, ForeignKey("groups.id"))
 
     class_        = relationship("Class",    back_populates="students")
     group         = relationship("Group",    back_populates="students")

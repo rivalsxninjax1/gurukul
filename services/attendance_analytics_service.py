@@ -1,57 +1,70 @@
 """
-Monthly attendance analytics.
-Holiday logic: a day with NO student attendance records at all = Holiday.
-Working day  : any day that has at least one student attendance record.
-Present      : student has an attendance record with status 'Present'.
-Absent       : student has no record on a working day.
-Incomplete   : student has a record with status 'Incomplete'.
+Monthly attendance analytics using BS (Bikram Sambat) months.
+
+Holiday logic:
+  A day with NO attendance records for ANY student = Holiday.
+  Working day = at least one student has an attendance record.
+
+Present    : student record with status 'Present'
+Incomplete : student record with status 'Incomplete'
+Absent     : no record on a working day (after join date)
+Holiday    : no records at all for any student that day
 """
-from datetime import date, timedelta
-from calendar import monthrange
+from datetime import date
 from database.connection import get_session
 from models.attendance import Attendance
-from models.student import Student
+from utils.bs_converter import (
+    bs_month_ad_range, today_bs_tuple, prev_bs_month, ad_to_bs
+)
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def _get_all_days_in_month(year: int, month: int) -> list:
-    _, last_day = monthrange(year, month)
-    return [date(year, month, d) for d in range(1, last_day + 1)]
-
-
-def _get_working_days(year: int, month: int) -> set:
-    """Days where at least ONE student has an attendance record."""
+def _get_working_days_in_ad_range(ad_start: date, ad_end: date) -> set:
+    """
+    Return set of AD dates in [ad_start, ad_end] where at least one
+    student attendance record exists.
+    """
+    if not ad_start or not ad_end:
+        return set()
     session = get_session()
-    days_all = _get_all_days_in_month(year, month)
-    working  = set()
-    for d in days_all:
-        count = session.query(Attendance).filter_by(date=d).count()
-        if count > 0:
-            working.add(d)
+    records = session.query(Attendance.date).filter(
+        Attendance.date >= ad_start,
+        Attendance.date <= ad_end,
+    ).distinct().all()
     session.close()
-    return working
+    return {r[0] for r in records}
 
 
 def get_monthly_analytics(student_id: int,
-                           year: int, month: int) -> dict:
+                           bs_year: int, bs_month: int,
+                           join_date: date = None) -> dict:
     """
-    Returns:
-        working_days   : total working days (non-holiday)
-        present        : days student was present
-        incomplete     : days student was incomplete
-        absent         : working days - present - incomplete
-        holiday        : calendar days - working days
+    Returns attendance analytics for a student in a given BS month.
+    Only counts days on or after join_date.
     """
-    working_days = _get_working_days(year, month)
+    ad_start, ad_end = bs_month_ad_range(bs_year, bs_month)
+    if not ad_start or not ad_end:
+        return _empty(bs_year, bs_month)
+
+    # Clamp to join date
+    if join_date and ad_start < join_date:
+        ad_start = join_date
+    if ad_start > ad_end:
+        return _empty(bs_year, bs_month)
+
+    working_days = _get_working_days_in_ad_range(ad_start, ad_end)
+
+    # Filter to days >= join_date
+    if join_date:
+        working_days = {d for d in working_days if d >= join_date}
 
     session = get_session()
     records = session.query(Attendance).filter(
         Attendance.student_id == student_id,
-        Attendance.date >= date(year, month, 1),
-        Attendance.date <= date(year, month,
-                                monthrange(year, month)[1])
+        Attendance.date >= ad_start,
+        Attendance.date <= ad_end,
     ).all()
     session.close()
 
@@ -70,32 +83,52 @@ def get_monthly_analytics(student_id: int,
         else:
             absent += 1
 
-    _, last = monthrange(year, month)
-    total_calendar = last
-    holiday = total_calendar - len(working_days)
+    # Total calendar days in this BS month from join date
+    from calendar import monthrange as _mr
+    import datetime
+    total_cal = (ad_end - ad_start).days + 1
+    holiday   = total_cal - len(working_days)
 
     return {
-        "year":         year,
-        "month":        month,
+        "bs_year":      bs_year,
+        "bs_month":     bs_month,
         "working_days": len(working_days),
         "present":      present,
         "incomplete":   incomplete,
         "absent":       absent,
-        "holiday":      holiday,
-        "total_calendar": total_calendar,
+        "holiday":      max(0, holiday),
+        "total_calendar": total_cal,
     }
 
 
-def get_two_month_analytics(student_id: int) -> dict:
-    """Returns analytics for current month and previous month."""
-    today   = date.today()
-    cur_y, cur_m = today.year, today.month
+def _empty(bs_year, bs_month):
+    return {
+        "bs_year": bs_year, "bs_month": bs_month,
+        "working_days": 0, "present": 0,
+        "incomplete": 0, "absent": 0,
+        "holiday": 0, "total_calendar": 0,
+    }
 
-    if cur_m == 1:
-        prev_y, prev_m = cur_y - 1, 12
-    else:
-        prev_y, prev_m = cur_y, cur_m - 1
 
-    current  = get_monthly_analytics(student_id, cur_y,  cur_m)
-    previous = get_monthly_analytics(student_id, prev_y, prev_m)
+def get_two_month_analytics(student_id: int,
+                              join_date: date = None) -> dict:
+    """Returns analytics for current and previous BS month."""
+    by, bm, _ = today_bs_tuple()
+    py, pm    = prev_bs_month(by, bm)
+
+    current  = get_monthly_analytics(student_id, by,  bm,  join_date)
+    previous = get_monthly_analytics(student_id, py, pm,  join_date)
     return {"current": current, "previous": previous}
+
+
+# BS month names (Nepali months in English)
+BS_MONTH_NAMES = [
+    "Baisakh", "Jestha", "Ashadh", "Shrawan",
+    "Bhadra",  "Ashwin", "Kartik", "Mangsir",
+    "Poush",   "Magh",   "Falgun", "Chaitra",
+]
+
+def bs_month_name(month: int) -> str:
+    if 1 <= month <= 12:
+        return BS_MONTH_NAMES[month - 1]
+    return str(month)

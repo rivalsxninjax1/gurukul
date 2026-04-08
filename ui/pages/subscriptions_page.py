@@ -3,7 +3,8 @@ from PyQt5.QtWidgets import (
     QTableWidget, QTableWidgetItem, QDialog, QLineEdit,
     QComboBox, QMessageBox, QHeaderView, QFrame,
     QListWidget, QListWidgetItem, QAbstractItemView,
-    QFileDialog, QSpinBox, QDoubleSpinBox, QSplitter
+    QFileDialog, QSpinBox, QDoubleSpinBox, QSplitter,
+    QCheckBox
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
@@ -13,6 +14,7 @@ from models.subscription import StudentSubscription, SubscriptionPayment
 from services.subscription_service import (
     get_active_subscription,
     get_subscription_history,
+    get_outstanding_balance,
     get_payments_for_subscription,
     get_all_payments_for_student,
     add_payment,
@@ -74,6 +76,8 @@ class SubscriptionsPage(QWidget):
         splitter.setSizes([280, 720])
         root.addWidget(splitter)
 
+    # ── Left: student list ────────────────────────────────────────────────────
+
     def _build_student_panel(self):
         frame = QFrame()
         frame.setStyleSheet(CARD_STYLE)
@@ -101,6 +105,8 @@ class SubscriptionsPage(QWidget):
         layout.addWidget(self.student_list)
         return frame
 
+    # ── Right: detail panel ───────────────────────────────────────────────────
+
     def _build_detail_panel(self):
         frame = QFrame()
         frame.setStyleSheet("background: transparent; border: none;")
@@ -108,9 +114,22 @@ class SubscriptionsPage(QWidget):
         self._detail_layout.setContentsMargins(0, 0, 0, 0)
         self._detail_layout.setSpacing(14)
 
+        # Active subscription card
         self._active_card = self._build_active_sub_card()
         self._detail_layout.addWidget(self._active_card)
 
+        # Outstanding balance warning
+        self._outstanding_lbl = QLabel("")
+        self._outstanding_lbl.setStyleSheet(
+            f"font-size: 13px; font-weight: bold; color: {STATUS_ABSENT};"
+            f"background: {STATUS_ABSENT_BG}; border: 1px solid #f5b8b8;"
+            "border-radius: 5px; padding: 8px 14px; border-radius: 5px;"
+        )
+        self._outstanding_lbl.setWordWrap(True)
+        self._outstanding_lbl.hide()
+        self._detail_layout.addWidget(self._outstanding_lbl)
+
+        # Payment history
         pay_lbl = QLabel("PAYMENT HISTORY")
         pay_lbl.setStyleSheet(SECTION_LABEL_STYLE)
         self._detail_layout.addWidget(pay_lbl)
@@ -162,6 +181,7 @@ class SubscriptionsPage(QWidget):
         pay_cl.addWidget(self.pay_table)
         self._detail_layout.addWidget(pay_frame)
 
+        # Subscription history
         hist_lbl = QLabel("SUBSCRIPTION HISTORY")
         hist_lbl.setStyleSheet(SECTION_LABEL_STYLE)
         self._detail_layout.addWidget(hist_lbl)
@@ -172,13 +192,13 @@ class SubscriptionsPage(QWidget):
         hist_cl.setContentsMargins(0, 0, 0, 0)
 
         self.hist_table = QTableWidget()
-        self.hist_table.setColumnCount(6)
-        self.hist_table.setHorizontalHeaderLabels(
-            ["Start (BS)", "End (BS)", "Total Fee",
-             "Paid", "Balance", "Status"]
-        )
+        self.hist_table.setColumnCount(7)
+        self.hist_table.setHorizontalHeaderLabels([
+            "Start (BS)", "End (BS)", "Total Fee",
+            "Paid", "Balance", "Status", "Days"
+        ])
         hh = self.hist_table.horizontalHeader()
-        for i in range(6):
+        for i in range(7):
             hh.setSectionResizeMode(i, QHeaderView.Stretch)
         self.hist_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.hist_table.setAlternatingRowColors(True)
@@ -202,10 +222,12 @@ class SubscriptionsPage(QWidget):
         hdr = QHBoxLayout()
         title = QLabel("Active Subscription")
         title.setStyleSheet(PANEL_TITLE_STYLE)
+
         self.renew_btn = QPushButton("Renew Plan")
         self.renew_btn.setStyleSheet(BTN_SECONDARY)
         self.renew_btn.setEnabled(False)
         self.renew_btn.clicked.connect(self._renew)
+
         hdr.addWidget(title)
         hdr.addStretch()
         hdr.addWidget(self.renew_btn)
@@ -217,10 +239,11 @@ class SubscriptionsPage(QWidget):
         sep.setStyleSheet("background: #eeeeee; border: none;")
         layout.addWidget(sep)
 
+        # Info row
         info_row = QHBoxLayout()
         info_row.setSpacing(0)
         self._sub_info = {}
-        for key in ["Period (BS)", "Days Left", "Total Fee"]:
+        for key in ["Period (BS)", "Days", "Total Fee"]:
             col = QVBoxLayout()
             col.setSpacing(4)
             k_lbl = QLabel(key)
@@ -230,7 +253,7 @@ class SubscriptionsPage(QWidget):
             )
             v_lbl = QLabel("—")
             v_lbl.setStyleSheet(
-                "font-size: 16px; font-weight: bold; color: #1a1a1a;"
+                "font-size: 15px; font-weight: bold; color: #1a1a1a;"
                 "background: transparent; border: none;"
             )
             col.addWidget(k_lbl)
@@ -240,13 +263,14 @@ class SubscriptionsPage(QWidget):
             self._sub_info[key] = v_lbl
         layout.addLayout(info_row)
 
+        # Payment summary
         pay_row = QHBoxLayout()
         pay_row.setSpacing(12)
-        self._paid_card  = self._mini_summary(
+        self._paid_card   = self._mini_summary(
             "Paid",       "Rs. 0", STATUS_PRESENT,    STATUS_PRESENT_BG)
-        self._bal_card   = self._mini_summary(
+        self._bal_card    = self._mini_summary(
             "Balance",    "Rs. 0", STATUS_ABSENT,     STATUS_ABSENT_BG)
-        self._pstat_card = self._mini_summary(
+        self._pstat_card  = self._mini_summary(
             "Pay Status", "—",     "#333333",          "#f0f0f0")
         pay_row.addWidget(self._paid_card)
         pay_row.addWidget(self._bal_card)
@@ -282,6 +306,8 @@ class SubscriptionsPage(QWidget):
         inner.addWidget(v)
         card._val = v
         return card
+
+    # ── Data loading ──────────────────────────────────────────────────────────
 
     def _load_students(self):
         session = get_session()
@@ -328,7 +354,7 @@ class SubscriptionsPage(QWidget):
             self._sub_info["Period (BS)"].setText(
                 f"{bs_str(sub['start_date'])}  →  {bs_str(sub['end_date'])}"
             )
-            self._sub_info["Days Left"].setText(f"{sub['days_left']} days")
+            self._sub_info["Days"].setText(sub["days_label"])
             self._sub_info["Total Fee"].setText(
                 f"Rs. {sub['total_fee']:,.0f}"
             )
@@ -355,6 +381,17 @@ class SubscriptionsPage(QWidget):
             self.add_pay_btn.setEnabled(False)
             self.renew_btn.setEnabled(True)
             self.pay_table.setRowCount(0)
+
+        # Outstanding balance warning
+        outstanding = get_outstanding_balance(self.selected_student_id)
+        if outstanding > 0:
+            self._outstanding_lbl.setText(
+                f"⚠  Total outstanding balance across ALL subscriptions: "
+                f"Rs. {outstanding:,.0f}"
+            )
+            self._outstanding_lbl.show()
+        else:
+            self._outstanding_lbl.hide()
 
         self._load_history()
 
@@ -396,6 +433,7 @@ class SubscriptionsPage(QWidget):
                 f"Rs. {h['total_paid']:,.0f}",
                 f"Rs. {h['balance']:,.0f}",
                 h["status"].capitalize(),
+                h["days_label"],
             ]):
                 item = QTableWidgetItem(val)
                 item.setForeground(Qt.black)
@@ -408,6 +446,8 @@ class SubscriptionsPage(QWidget):
                         item.setBackground(QColor(STATUS_ABSENT_BG))
                 self.hist_table.setItem(r, c, item)
             self.hist_table.setRowHeight(r, 36)
+
+    # ── Actions ───────────────────────────────────────────────────────────────
 
     def _add_payment(self):
         if not self.selected_student_id:
@@ -440,8 +480,13 @@ class SubscriptionsPage(QWidget):
             return
         sub = get_active_subscription(self.selected_student_id)
         default_start = sub["end_date"] if sub else date.today()
+        previous_due  = sub["balance"]  if sub else 0.0
+
         dlg = RenewDialog(
-            self.selected_student_id, default_start, parent=self
+            self.selected_student_id,
+            default_start,
+            previous_due,
+            parent=self
         )
         if dlg.exec_():
             self.toast.success("Subscription renewed.")
@@ -515,7 +560,6 @@ class AddPaymentDialog(QDialog):
         self.method_combo.setStyleSheet(COMBO_STYLE)
         self.method_combo.setFixedHeight(36)
 
-        # BS date picker — defaults to today
         self.date_input = BSDateEdit()
         self.date_input.set_today()
 
@@ -552,16 +596,12 @@ class AddPaymentDialog(QDialog):
         amount = self.amount_spin.value()
         if amount <= 0:
             QMessageBox.warning(
-                self, "Validation",
-                "Amount must be greater than zero."
+                self, "Validation", "Amount must be greater than zero."
             )
             return
         payment_date = self.date_input.get_ad_date()
         if not payment_date:
-            QMessageBox.warning(
-                self, "Validation",
-                "Payment Date (BS) is invalid."
-            )
+            QMessageBox.warning(self, "Validation", "Invalid date.")
             return
         pid = add_payment(
             student_id      = self.student_id,
@@ -575,15 +615,17 @@ class AddPaymentDialog(QDialog):
         self.accept()
 
 
-# ── Renew Dialog ──────────────────────────────────────────────────────────────
+# ── Renew Dialog — with carry forward option ──────────────────────────────────
 
 class RenewDialog(QDialog):
-    def __init__(self, student_id, default_start, parent=None):
+    def __init__(self, student_id, default_start,
+                 previous_due: float = 0.0, parent=None):
         super().__init__(parent)
         self.student_id    = student_id
         self.default_start = default_start
+        self.previous_due  = previous_due
         self.setWindowTitle("Renew Subscription")
-        self.setMinimumWidth(420)
+        self.setMinimumWidth(440)
         self.setStyleSheet(DIALOG_STYLE)
         self.setSizeGripEnabled(True)
         self._build_ui()
@@ -617,7 +659,6 @@ class RenewDialog(QDialog):
             fl.addWidget(widget)
             fl.addSpacing(2)
 
-        # BS date picker — defaults to subscription end date or today
         self.start_input = BSDateEdit()
         if hasattr(self.default_start, "year"):
             self.start_input.set_from_ad(self.default_start)
@@ -638,10 +679,52 @@ class RenewDialog(QDialog):
         self.fee_spin.setDecimals(0)
         self.fee_spin.setStyleSheet(SPINBOX_STYLE)
         self.fee_spin.setFixedHeight(36)
+        self.fee_spin.valueChanged.connect(self._update_total_preview)
 
         row("Start Date (BS)", self.start_input)
         row("Duration",        self.duration_spin)
-        row("Total Fee",       self.fee_spin)
+        row("New Plan Fee",    self.fee_spin)
+
+        # Carry forward option — only show if there's a previous due
+        if self.previous_due > 0:
+            due_sep = QFrame()
+            due_sep.setFrameShape(QFrame.HLine)
+            due_sep.setStyleSheet("background: #eeeeee; border: none;")
+            fl.addWidget(due_sep)
+
+            due_info = QLabel(
+                f"Previous subscription balance due: "
+                f"Rs. {self.previous_due:,.0f}"
+            )
+            due_info.setStyleSheet(
+                f"font-size: 12px; font-weight: bold; color: {STATUS_ABSENT};"
+                f"background: {STATUS_ABSENT_BG}; border-radius: 4px;"
+                "padding: 6px 10px; border: none;"
+            )
+            fl.addWidget(due_info)
+
+            self.carry_checkbox = QCheckBox(
+                f"Carry forward Rs. {self.previous_due:,.0f} to new subscription"
+            )
+            self.carry_checkbox.setStyleSheet(
+                "font-size: 13px; color: #333333; background: transparent;"
+            )
+            self.carry_checkbox.stateChanged.connect(
+                self._update_total_preview
+            )
+            fl.addWidget(self.carry_checkbox)
+        else:
+            self.carry_checkbox = None
+
+        # Total preview
+        self.total_preview_lbl = QLabel(f"Total Fee: Rs. 2,000")
+        self.total_preview_lbl.setStyleSheet(
+            "font-size: 13px; font-weight: bold; color: #1a1a1a;"
+            "background: #f5f5f5; border-radius: 4px; padding: 6px 10px;"
+            "border: none;"
+        )
+        fl.addWidget(self.total_preview_lbl)
+
         root.addWidget(inner)
 
         footer = QFrame()
@@ -662,18 +745,36 @@ class RenewDialog(QDialog):
         br.addWidget(save)
         root.addWidget(footer)
 
+        self._update_total_preview()
+
+    def _update_total_preview(self):
+        base  = self.fee_spin.value()
+        carry = (self.previous_due
+                 if self.carry_checkbox and self.carry_checkbox.isChecked()
+                 else 0.0)
+        total = base + carry
+        self.total_preview_lbl.setText(
+            f"Total Fee: Rs. {total:,.0f}"
+            + (f"  (Rs. {base:,.0f} + Rs. {carry:,.0f} carried forward)"
+               if carry > 0 else "")
+        )
+
     def _save(self):
         start_ad = self.start_input.get_ad_date()
         if not start_ad:
             QMessageBox.warning(
-                self, "Validation",
-                "Start Date (BS) is invalid."
+                self, "Validation", "Start Date (BS) is invalid."
             )
             return
+        carry_forward = (
+            self.carry_checkbox is not None
+            and self.carry_checkbox.isChecked()
+        )
         renew_subscription(
-            student_id      = self.student_id,
-            start_date      = start_ad,
-            duration_months = self.duration_spin.value(),
-            total_fee       = self.fee_spin.value(),
+            student_id       = self.student_id,
+            start_date       = start_ad,
+            duration_months  = self.duration_spin.value(),
+            total_fee        = self.fee_spin.value(),
+            carry_forward_due= carry_forward,
         )
         self.accept()

@@ -2,42 +2,56 @@ from database.connection import engine, Base
 from models import (
     user, class_group, student, teacher,
     attendance, attendance_raw,
-    subscription, schedule, settings, exam
+    subscription, schedule, settings, exam, expense
 )
 
 
 def initialize_database():
     Base.metadata.create_all(bind=engine)
-    _migrate_teacher_attendance()
+    _run_migrations()
     _seed_settings()
     _seed_default_admin()
     print("✅ Database initialized.")
 
 
-def _migrate_teacher_attendance():
-    """Add exit_time and status columns to teacher_attendance if missing."""
+def _run_migrations():
+    """Safe additive migrations only."""
     from sqlalchemy import text
     with engine.connect() as conn:
-        # Check existing columns
-        result = conn.execute(
+
+        # teacher_attendance
+        res = conn.execute(
             text("PRAGMA table_info(teacher_attendance)")
         )
-        cols = [row[1] for row in result]
-
-        if "exit_time" not in cols:
+        ta_cols = [r[1] for r in res.fetchall()]
+        if "exit_time" not in ta_cols:
             conn.execute(
-                text("ALTER TABLE teacher_attendance ADD COLUMN exit_time TIME")
+                text("ALTER TABLE teacher_attendance "
+                     "ADD COLUMN exit_time TIME")
             )
-            print("✅ Migrated: added exit_time to teacher_attendance")
-
-        if "status" not in cols:
+            print("✅ Migration: teacher_attendance.exit_time")
+        if "status" not in ta_cols:
             conn.execute(
-                text(
-                    "ALTER TABLE teacher_attendance "
-                    "ADD COLUMN status VARCHAR(20) DEFAULT 'Present'"
-                )
+                text("ALTER TABLE teacher_attendance "
+                     "ADD COLUMN status VARCHAR(20) DEFAULT 'Present'")
             )
-            print("✅ Migrated: added status to teacher_attendance")
+            print("✅ Migration: teacher_attendance.status")
+
+        # students
+        res = conn.execute(text("PRAGMA table_info(students)"))
+        st_cols = [r[1] for r in res.fetchall()]
+        if "guardian_name" not in st_cols:
+            conn.execute(
+                text("ALTER TABLE students "
+                     "ADD COLUMN guardian_name VARCHAR(150)")
+            )
+            print("✅ Migration: students.guardian_name")
+        if "whatsapp_number" not in st_cols:
+            conn.execute(
+                text("ALTER TABLE students "
+                     "ADD COLUMN whatsapp_number VARCHAR(20)")
+            )
+            print("✅ Migration: students.whatsapp_number")
 
         conn.commit()
 

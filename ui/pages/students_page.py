@@ -15,9 +15,8 @@ from services.subscription_service import (
 from services.id_service import generate_student_id
 from services.export_service import export_student_list_pdf
 from services.settings_service import get_setting
-from utils.bs_converter import bs_to_ad, today_bs_tuple
+from utils.bs_converter import bs_to_ad
 from ui.bs_widgets import BSDateEdit
-from datetime import date
 from ui.styles import (
     BTN_PRIMARY, BTN_DANGER, BTN_SECONDARY,
     TABLE_STYLE, INPUT_STYLE, INPUT_READONLY_STYLE, COMBO_STYLE,
@@ -338,8 +337,8 @@ class StudentDialog(QDialog):
         self.setWindowTitle(
             "Add Student" if not student_id else "Edit Student"
         )
-        self.setMinimumWidth(480)
-        self.setMinimumHeight(420)
+        self.setMinimumWidth(500)
+        self.setMinimumHeight(460)
         self.setStyleSheet(DIALOG_STYLE)
         self.setSizeGripEnabled(True)
         self._build_ui()
@@ -392,12 +391,21 @@ class StudentDialog(QDialog):
         self.phone_input.setFixedHeight(36)
         self.phone_input.setPlaceholderText("Phone number")
 
+        self.guardian_input = QLineEdit()
+        self.guardian_input.setStyleSheet(INPUT_STYLE)
+        self.guardian_input.setFixedHeight(36)
+        self.guardian_input.setPlaceholderText("Parent / Guardian name")
+
+        self.whatsapp_input = QLineEdit()
+        self.whatsapp_input.setStyleSheet(INPUT_STYLE)
+        self.whatsapp_input.setFixedHeight(36)
+        self.whatsapp_input.setPlaceholderText("e.g. 9800000000")
+
         self.address_input = QLineEdit()
         self.address_input.setStyleSheet(INPUT_STYLE)
         self.address_input.setFixedHeight(36)
         self.address_input.setPlaceholderText("Address")
 
-        # BS date pickers
         self.dob_input = BSDateEdit()
         self.dob_input.set_today()
 
@@ -423,6 +431,8 @@ class StudentDialog(QDialog):
 
         field("Full Name  *",       self.name_input)
         field("Phone",              self.phone_input)
+        field("Guardian Name",      self.guardian_input)
+        field("WhatsApp Number",    self.whatsapp_input)
         field("Address",            self.address_input)
         field("Date of Birth (BS)", self.dob_input)
         field("Join Date (BS)",     self.join_date_input)
@@ -495,18 +505,21 @@ class StudentDialog(QDialog):
         if not s:
             session.close()
             return
-        uid, name = s.user_id, s.name
-        phone, addr = s.phone or "", s.address or ""
-        dob, jd = s.dob, s.join_date
-        cid, gid = s.class_id, s.group_id
+        uid, name      = s.user_id, s.name
+        phone, addr    = s.phone or "", s.address or ""
+        guardian       = s.guardian_name or ""
+        whatsapp       = s.whatsapp_number or ""
+        dob, jd        = s.dob, s.join_date
+        cid, gid       = s.class_id, s.group_id
         session.close()
 
         self.id_display.setText(uid)
         self.name_input.setText(name)
         self.phone_input.setText(phone)
+        self.guardian_input.setText(guardian)
+        self.whatsapp_input.setText(whatsapp)
         self.address_input.setText(addr)
 
-        # Set BS date pickers from AD dates
         if dob:
             self.dob_input.set_from_ad(dob)
         if jd:
@@ -529,10 +542,18 @@ class StudentDialog(QDialog):
             self.name_input.setFocus()
             return
 
-        # Get AD dates from BS pickers
+        # Validate WhatsApp number
+        wa = self.whatsapp_input.text().strip()
+        if wa and not wa.isdigit():
+            QMessageBox.warning(
+                self, "Validation",
+                "WhatsApp number must contain digits only."
+            )
+            self.whatsapp_input.setFocus()
+            return
+
         dob_ad  = self.dob_input.get_ad_date()
         join_ad = self.join_date_input.get_ad_date()
-
         if not join_ad:
             QMessageBox.warning(
                 self, "Validation",
@@ -549,7 +570,7 @@ class StudentDialog(QDialog):
             if dup:
                 QMessageBox.warning(
                     self, "Duplicate",
-                    f"User ID '{uid}' already exists. Please restart the form."
+                    f"User ID '{uid}' already exists."
                 )
                 session.close()
                 return
@@ -557,13 +578,15 @@ class StudentDialog(QDialog):
             s.user_id = uid
             session.add(s)
 
-        s.name     = name
-        s.phone    = self.phone_input.text().strip()
-        s.address  = self.address_input.text().strip()
-        s.class_id = self.class_combo.currentData()
-        s.group_id = self.group_combo.currentData()
-        s.dob       = dob_ad
-        s.join_date = join_ad
+        s.name            = name
+        s.phone           = self.phone_input.text().strip()
+        s.guardian_name   = self.guardian_input.text().strip() or None
+        s.whatsapp_number = wa or None
+        s.address         = self.address_input.text().strip()
+        s.class_id        = self.class_combo.currentData()
+        s.group_id        = self.group_combo.currentData()
+        s.dob             = dob_ad
+        s.join_date       = join_ad
 
         session.commit()
         self.saved_student_id = s.id

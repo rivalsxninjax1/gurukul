@@ -23,7 +23,9 @@ from ui.styles import (
     LIST_STYLE,
     STATUS_PRESENT, STATUS_PRESENT_BG,
     STATUS_ABSENT, STATUS_ABSENT_BG,
+    apply_msgbox_style,
 )
+from ui.event_bus import bus
 from ui.widgets import Toast
 
 
@@ -34,6 +36,8 @@ class ExamsPage(QWidget):
         self._selected_exam_id = None
         self._build_ui()
         self._load_exams()
+        # Real-time: refresh student list when a new student is saved
+        bus.student_saved.connect(self._populate_students)
 
     def _build_ui(self):
         root = QVBoxLayout(self)
@@ -54,8 +58,6 @@ class ExamsPage(QWidget):
         splitter.addWidget(self._build_right_panel())
         splitter.setSizes([300, 700])
         root.addWidget(splitter)
-
-    # ── Left: exam list ───────────────────────────────────────────────────────
 
     def _build_exam_panel(self):
         frame = QFrame()
@@ -86,8 +88,6 @@ class ExamsPage(QWidget):
         del_btn.clicked.connect(self._delete_exam)
         layout.addWidget(del_btn)
         return frame
-
-    # ── Right: tabs for subjects + enter marks ────────────────────────────────
 
     def _build_right_panel(self):
         frame = QFrame()
@@ -139,7 +139,7 @@ class ExamsPage(QWidget):
         sub_cl.addWidget(self.subject_table)
         layout.addWidget(sub_frame)
 
-        # Enter marks card
+        # Marks entry card
         marks_frame = QFrame()
         marks_frame.setStyleSheet(CARD_STYLE)
         marks_cl = QVBoxLayout(marks_frame)
@@ -155,15 +155,16 @@ class ExamsPage(QWidget):
         marks_lbl = QLabel("Enter Marks")
         marks_lbl.setStyleSheet(PANEL_TITLE_STYLE)
 
-        # Student selector
+        student_lbl = QLabel("Student:")
+        student_lbl.setStyleSheet(
+            "font-size: 12px; color: #555555; background: transparent;"
+        )
         self.student_combo = QComboBox()
         self.student_combo.setStyleSheet(COMBO_STYLE)
         self.student_combo.setFixedHeight(34)
         self.student_combo.setFixedWidth(220)
         self._populate_students()
-        self.student_combo.currentIndexChanged.connect(
-            self._load_marks_table
-        )
+        self.student_combo.currentIndexChanged.connect(self._load_marks_table)
 
         save_marks_btn = QPushButton("Save All Marks")
         save_marks_btn.setStyleSheet(BTN_PRIMARY)
@@ -171,7 +172,7 @@ class ExamsPage(QWidget):
 
         marks_hdr_l.addWidget(marks_lbl)
         marks_hdr_l.addSpacing(12)
-        marks_hdr_l.addWidget(QLabel("Student:"))
+        marks_hdr_l.addWidget(student_lbl)
         marks_hdr_l.addWidget(self.student_combo)
         marks_hdr_l.addStretch()
         marks_hdr_l.addWidget(save_marks_btn)
@@ -194,19 +195,29 @@ class ExamsPage(QWidget):
         self.marks_table.setFrameShape(QFrame.NoFrame)
         marks_cl.addWidget(self.marks_table)
         layout.addWidget(marks_frame)
-
         return frame
 
     # ── Data loading ──────────────────────────────────────────────────────────
 
     def _populate_students(self):
+        """Reload student dropdown — called on init and on bus.student_saved."""
+        prev_id = self.student_combo.currentData() \
+                  if self.student_combo.count() > 0 else None
         session = get_session()
         students = session.query(Student).order_by(Student.name).all()
+        self.student_combo.blockSignals(True)
         self.student_combo.clear()
         self.student_combo.addItem("— Select Student —", None)
-        for s in students:
+        restore_idx = 0
+        for i, s in enumerate(students, 1):
             self.student_combo.addItem(f"{s.name}  ({s.user_id})", s.id)
+            if s.id == prev_id:
+                restore_idx = i
+        self.student_combo.setCurrentIndex(restore_idx)
+        self.student_combo.blockSignals(False)
         session.close()
+        # Reload marks table for newly selected student
+        self._load_marks_table()
 
     def _load_exams(self):
         exams = get_all_exams()
@@ -232,15 +243,9 @@ class ExamsPage(QWidget):
         subjects = get_subjects_for_exam(self._selected_exam_id)
         self.subject_table.setRowCount(len(subjects))
         for r, sub in enumerate(subjects):
-            self.subject_table.setItem(
-                r, 0, QTableWidgetItem(sub["subject_name"])
-            )
-            self.subject_table.setItem(
-                r, 1, QTableWidgetItem(str(sub["full_marks"]))
-            )
-            self.subject_table.setItem(
-                r, 2, QTableWidgetItem(str(sub["pass_marks"]))
-            )
+            self.subject_table.setItem(r, 0, QTableWidgetItem(sub["subject_name"]))
+            self.subject_table.setItem(r, 1, QTableWidgetItem(str(sub["full_marks"])))
+            self.subject_table.setItem(r, 2, QTableWidgetItem(str(sub["pass_marks"])))
             del_btn = QPushButton("Delete")
             del_btn.setStyleSheet(BTN_DANGER)
             del_btn.clicked.connect(
@@ -271,34 +276,29 @@ class ExamsPage(QWidget):
                     subject_id=sub["id"]
                 ).first()
 
-            self.marks_table.setItem(
-                r, 0, QTableWidgetItem(sub["subject_name"])
-            )
-            self.marks_table.setItem(
-                r, 1, QTableWidgetItem(str(sub["full_marks"]))
-            )
-            self.marks_table.setItem(
-                r, 2, QTableWidgetItem(str(sub["pass_marks"]))
-            )
+            self.marks_table.setItem(r, 0, QTableWidgetItem(sub["subject_name"]))
+            self.marks_table.setItem(r, 1, QTableWidgetItem(str(sub["full_marks"])))
+            self.marks_table.setItem(r, 2, QTableWidgetItem(str(sub["pass_marks"])))
 
-            # Editable marks spin
             spin = QDoubleSpinBox()
             spin.setRange(0, sub["full_marks"])
             spin.setDecimals(1)
             spin.setStyleSheet(SPINBOX_STYLE)
             if existing:
                 spin.setValue(existing.marks)
+
+            # Capture row index for pass/fail update
+            def make_handler(row, pass_marks):
+                def handler(val):
+                    self._update_pass_fail(row, val, pass_marks)
+                return handler
+
             spin.valueChanged.connect(
-                lambda val, sid=sub["id"], s=spin, pm=sub["pass_marks"],
-                fm=sub["full_marks"]: self._update_pass_fail(
-                    self.marks_table.indexAt(s.pos()).row(),
-                    val, pm
-                )
+                make_handler(r, sub["pass_marks"])
             )
             self.marks_table.setCellWidget(r, 3, spin)
             self._marks_widgets[sub["id"]] = spin
 
-            # Pass/fail indicator
             pf_item = QTableWidgetItem("—")
             pf_item.setForeground(Qt.black)
             if existing:
@@ -321,7 +321,6 @@ class ExamsPage(QWidget):
         session.close()
 
     def _update_pass_fail(self, row, marks, pass_marks):
-        """Update the Pass/Fail cell when marks change."""
         item = self.marks_table.item(row, 4)
         if not item:
             item = QTableWidgetItem()
@@ -355,11 +354,12 @@ class ExamsPage(QWidget):
             return
         name    = item.text().strip()
         exam_id = item.data(Qt.UserRole)
-        if QMessageBox.question(
-            self, "Confirm Delete",
-            f'Delete exam "{name}" and all its data?',
-            QMessageBox.Yes | QMessageBox.No
-        ) == QMessageBox.Yes:
+        mb = QMessageBox(self)
+        mb.setWindowTitle("Confirm Delete")
+        mb.setText(f'Delete exam "{name}" and all its data?')
+        mb.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        apply_msgbox_style(mb)
+        if mb.exec_() == QMessageBox.Yes:
             delete_exam(exam_id)
             self._selected_exam_id = None
             self.subject_table.setRowCount(0)
@@ -378,20 +378,19 @@ class ExamsPage(QWidget):
             if vals["name"]:
                 add_subject(
                     self._selected_exam_id,
-                    vals["name"],
-                    vals["full"],
-                    vals["pass"],
+                    vals["name"], vals["full"], vals["pass"],
                 )
                 self._load_subjects()
                 self._load_marks_table()
                 self.toast.success(f'Subject "{vals["name"]}" added.')
 
     def _delete_subject(self, subject_id):
-        if QMessageBox.question(
-            self, "Confirm Delete",
-            "Delete this subject and all its marks?",
-            QMessageBox.Yes | QMessageBox.No
-        ) == QMessageBox.Yes:
+        mb = QMessageBox(self)
+        mb.setWindowTitle("Confirm Delete")
+        mb.setText("Delete this subject and all its marks?")
+        mb.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        apply_msgbox_style(mb)
+        if mb.exec_() == QMessageBox.Yes:
             delete_subject(subject_id)
             self._load_subjects()
             self._load_marks_table()
@@ -414,7 +413,7 @@ class ExamsPage(QWidget):
         self._load_marks_table()
 
 
-# ── Simple dialogs ────────────────────────────────────────────────────────────
+# ── Dialogs ───────────────────────────────────────────────────────────────────
 
 class NameDialog(QDialog):
     def __init__(self, title, prompt, parent=None):
