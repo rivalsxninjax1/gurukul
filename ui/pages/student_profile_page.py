@@ -1,7 +1,8 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QFrame,
-    QScrollArea, QFileDialog, QMessageBox
+    QScrollArea, QFileDialog, QMessageBox, QDialog,
+    QVBoxLayout as QVL
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
@@ -15,7 +16,9 @@ from services.attendance_analytics_service import (
     get_two_month_analytics, bs_month_name
 )
 from services.exam_service import get_results_for_student
-from services.export_service import export_student_profile_pdf
+from services.print_service import (
+    get_student_profile_html, print_html, html_to_pdf
+)
 from services.settings_service import get_setting
 from utils.bs_converter import bs_str
 from utils.logo_helper import logo_pixmap
@@ -31,9 +34,19 @@ from ui.styles import (
 CENTRE_NAME    = "GURUKUL ACADEMY AND TRAINING CENTER"
 CENTRE_ADDRESS = "Biratnagar-1, Bhatta Chowk"
 
+BTN_PRINT = """
+    QPushButton {
+        background: #2d4a7a; color: #ffffff;
+        padding: 7px 18px; border-radius: 5px;
+        font-size: 13px; font-weight: bold;
+        border: none; min-height: 32px;
+    }
+    QPushButton:hover   { background: #3a5fa0; }
+    QPushButton:pressed { background: #1e3560; }
+"""
 
-def _make_logo_label(w: int = 38, h: int = 38) -> QLabel:
-    """Create a QLabel with logo PNG or fallback."""
+
+def _make_logo_label(w: int = 42, h: int = 42) -> QLabel:
     lbl = QLabel()
     lbl.setFixedSize(w, h)
     lbl.setAlignment(Qt.AlignCenter)
@@ -84,9 +97,7 @@ class StudentProfilePage(QWidget):
         brand_strip = QFrame()
         brand_strip.setStyleSheet("""
             QFrame {
-                background: #1a1a1a;
-                border-radius: 8px;
-                border: none;
+                background: #1a1a1a; border-radius: 8px; border: none;
             }
         """)
         brand_strip.setFixedHeight(62)
@@ -94,7 +105,6 @@ class StudentProfilePage(QWidget):
         bs_layout.setContentsMargins(16, 0, 16, 0)
         bs_layout.setSpacing(12)
 
-        # Logo
         logo_lbl = _make_logo_label(42, 42)
         bs_layout.addWidget(logo_lbl)
 
@@ -122,14 +132,21 @@ class StudentProfilePage(QWidget):
         bs_layout.addWidget(page_tag)
         self._layout.addWidget(brand_strip)
 
-        # ── Back + export ─────────────────────────────────────────────────────
+        # ── Back + Print + Download ───────────────────────────────────────────
         top = QHBoxLayout()
         back = QPushButton("← Back to Students")
         back.setStyleSheet(BTN_SECONDARY)
         back.clicked.connect(self._go_back)
         top.addWidget(back)
         top.addStretch()
-        export_btn = QPushButton("Export Profile PDF")
+
+        print_btn = QPushButton("🖨  Print Profile")
+        print_btn.setStyleSheet(BTN_PRINT)
+        print_btn.clicked.connect(self._print_profile)
+        top.addWidget(print_btn)
+        top.addSpacing(8)
+
+        export_btn = QPushButton("⬇  Download PDF")
         export_btn.setStyleSheet(BTN_PRIMARY)
         export_btn.clicked.connect(self._export_pdf)
         top.addWidget(export_btn)
@@ -209,7 +226,8 @@ class StudentProfilePage(QWidget):
         shcl = QVBoxLayout(sub_hist_frame)
         shcl.setContentsMargins(0, 0, 0, 0)
         self.sub_hist_table = self._make_table(
-            ["Start (BS)", "End (BS)", "Fee", "Paid", "Balance", "Status", "Days"],
+            ["Start (BS)", "End (BS)", "Fee",
+             "Paid", "Balance", "Status", "Days"],
             max_h=180
         )
         shcl.addWidget(self.sub_hist_table)
@@ -605,20 +623,39 @@ class StudentProfilePage(QWidget):
             ec_layout.addWidget(tbl)
             self._exam_results_layout.addWidget(exam_card)
 
+    # ── Print & Export actions ────────────────────────────────────────────────
+
+    def _print_profile(self):
+        """Open native print dialog — no PDF created."""
+        if not self._student_id:
+            return
+        html = get_student_profile_html(self._student_id)
+        printed = print_html(html, parent=self,
+                             dialog_title="Print Student Profile")
+        if printed:
+            from ui.widgets import Toast
+            # Show brief confirmation (can't show Toast easily here — use statusbar)
+            pass  # print dialog handles its own feedback
+
     def _export_pdf(self):
+        """Save profile as PDF file."""
         if not self._student_id:
             return
         path, _ = QFileDialog.getSaveFileName(
-            self, "Export Profile PDF",
+            self, "Download Profile PDF",
             f"student_profile_{self._student_id}.pdf",
             "PDF Files (*.pdf)"
         )
         if path:
-            centre = get_setting("centre_name", CENTRE_NAME)
-            export_student_profile_pdf(self._student_id, path, centre)
-            mb = QMessageBox(self)
-            mb.setWindowTitle("Exported")
-            mb.setText(f"Profile saved:\n{path}")
+            html = get_student_profile_html(self._student_id)
+            ok   = html_to_pdf(html, path)
+            mb   = QMessageBox(self)
+            if ok:
+                mb.setWindowTitle("Downloaded")
+                mb.setText(f"Profile saved:\n{path}")
+            else:
+                mb.setWindowTitle("Error")
+                mb.setText("Failed to save PDF. Please try again.")
             apply_msgbox_style(mb)
             mb.exec_()
 

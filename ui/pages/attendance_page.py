@@ -85,6 +85,7 @@ class AttendancePage(QWidget):
         # BS date filter — defaults to today
         self.date_filter = BSDateEdit()
         self.date_filter.set_today()
+        self.date_filter.setMinimumWidth(200)   
         self.date_filter.dateChanged.connect(
             lambda _: self.refresh_tables()
         )

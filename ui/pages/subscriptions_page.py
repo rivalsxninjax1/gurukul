@@ -413,9 +413,19 @@ class SubscriptionsPage(QWidget):
 
             rcpt_btn = QPushButton("PDF")
             rcpt_btn.setStyleSheet(BTN_SECONDARY)
+
+      
+
             rcpt_btn.clicked.connect(
                 lambda _, pid=p["id"]: self._get_receipt(pid)
             )
+    
+
+
+
+  
+
+
             self.pay_table.setCellWidget(r, 4, rcpt_btn)
             self.pay_table.setRowHeight(r, 38)
 
@@ -449,6 +459,33 @@ class SubscriptionsPage(QWidget):
 
     # ── Actions ───────────────────────────────────────────────────────────────
 
+    # def _add_payment(self):
+    #     if not self.selected_student_id:
+    #         return
+    #     sub = get_active_subscription(self.selected_student_id)
+    #     if not sub:
+    #         QMessageBox.information(
+    #             self, "No Active Subscription",
+    #             "This student has no active subscription.\nPlease renew first."
+    #         )
+    #         return
+    #     dlg = AddPaymentDialog(
+    #         self.selected_student_id, sub["id"],
+    #         sub["balance"], parent=self
+    #     )
+    #     if dlg.exec_():
+    #         self.toast.success("Payment recorded.")
+    #         self._refresh_detail()
+    #         bus.payment_added.emit()
+
+    #         if QMessageBox.question(
+    #             self, "Receipt",
+    #             "Generate PDF receipt for this payment?",
+    #             QMessageBox.Yes | QMessageBox.No
+    #         ) == QMessageBox.Yes:
+    #             self._get_receipt(dlg.saved_payment_id)
+
+
     def _add_payment(self):
         if not self.selected_student_id:
             return
@@ -467,13 +504,22 @@ class SubscriptionsPage(QWidget):
             self.toast.success("Payment recorded.")
             self._refresh_detail()
             bus.payment_added.emit()
+            # Show Print/Download options for receipt
+            self._show_receipt_options(dlg.saved_payment_id)
 
-            if QMessageBox.question(
-                self, "Receipt",
-                "Generate PDF receipt for this payment?",
-                QMessageBox.Yes | QMessageBox.No
-            ) == QMessageBox.Yes:
-                self._get_receipt(dlg.saved_payment_id)
+    def _show_receipt_options(self, payment_id: int):
+        """
+        Show a compact dialog: Print Receipt / Download PDF / Skip
+        """
+        dlg = ReceiptOptionsDialog(payment_id, parent=self)
+        dlg.exec_()
+
+    def _get_receipt(self, payment_id: int):
+        """Called from payment history PDF button."""
+        self._show_receipt_options(payment_id)
+
+
+
 
     def _renew(self):
         if not self.selected_student_id:
@@ -778,3 +824,120 @@ class RenewDialog(QDialog):
             carry_forward_due= carry_forward,
         )
         self.accept()
+
+        #replaced part : added fucntion 
+      # ── Receipt Options Dialog ────────────────────────────────────────────────────
+
+class ReceiptOptionsDialog(QDialog):
+    """
+    Shows Print / Download PDF / Cancel for a receipt.
+    Single source of truth: both actions use get_receipt_html().
+    """
+    def __init__(self, payment_id: int, parent=None):
+        super().__init__(parent)
+        self.payment_id = payment_id
+        self.setWindowTitle("Receipt Options")
+        self.setFixedWidth(340)
+        self.setStyleSheet(DIALOG_STYLE)
+        self._build_ui()
+
+    def _build_ui(self):
+        from services.print_service import (
+            get_receipt_html, print_html,
+            print_receipt_compact, html_to_pdf
+        )
+        self._get_receipt_html  = get_receipt_html
+        self._print_html        = print_html
+        self._print_compact     = print_receipt_compact
+        self._html_to_pdf       = html_to_pdf
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        inner = QFrame()
+        inner.setStyleSheet("QFrame { background: #ffffff; border: none; }")
+        fl = QVBoxLayout(inner)
+        fl.setContentsMargins(28, 28, 28, 20)
+        fl.setSpacing(14)
+
+        lbl = QLabel("What would you like to do with the receipt?")
+        lbl.setStyleSheet(
+            "font-size: 13px; color: #333333; background: transparent;"
+        )
+        lbl.setWordWrap(True)
+        fl.addWidget(lbl)
+
+        # Print button
+        print_btn = QPushButton("🖨   Print Receipt")
+        print_btn.setStyleSheet("""
+            QPushButton {
+                background: #2d4a7a; color: #ffffff;
+                padding: 10px 18px; border-radius: 5px;
+                font-size: 13px; font-weight: bold;
+                border: none; min-height: 38px;
+                text-align: left; padding-left: 16px;
+            }
+            QPushButton:hover   { background: #3a5fa0; }
+            QPushButton:pressed { background: #1e3560; }
+        """)
+        print_btn.clicked.connect(self._do_print)
+        fl.addWidget(print_btn)
+
+        # Download PDF button
+        dl_btn = QPushButton("⬇   Download PDF")
+        dl_btn.setStyleSheet("""
+            QPushButton {
+                background: #1a1a1a; color: #ffffff;
+                padding: 10px 18px; border-radius: 5px;
+                font-size: 13px; font-weight: bold;
+                border: none; min-height: 38px;
+                text-align: left; padding-left: 16px;
+            }
+            QPushButton:hover   { background: #3a3a3a; }
+            QPushButton:pressed { background: #000000; }
+        """)
+        dl_btn.clicked.connect(self._do_download)
+        fl.addWidget(dl_btn)
+
+        root.addWidget(inner)
+
+        footer = QFrame()
+        footer.setStyleSheet(
+            "QFrame { background: #f5f5f5; border-top: 1px solid #e8e8e8; }"
+        )
+        br = QHBoxLayout(footer)
+        br.setContentsMargins(28, 12, 28, 12)
+        skip = QPushButton("Skip")
+        skip.setStyleSheet(BTN_SECONDARY)
+        skip.clicked.connect(self.reject)
+        br.addStretch()
+        br.addWidget(skip)
+        root.addWidget(footer)
+
+    def _do_print(self):
+        html = self._get_receipt_html(self.payment_id)
+        self._print_compact(html, parent=self)
+        self.accept()
+
+    def _do_download(self):
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save Receipt PDF",
+            f"receipt_{self.payment_id}.pdf",
+            "PDF Files (*.pdf)"
+        )
+        if path:
+            html = self._get_receipt_html(self.payment_id)
+            ok   = self._html_to_pdf(html, path)
+            mb   = QMessageBox(self)
+            mb.setWindowTitle("Saved" if ok else "Error")
+            mb.setText(
+                f"Receipt saved:\n{path}" if ok
+                else "Failed to save PDF."
+            )
+            from ui.styles import apply_msgbox_style
+            apply_msgbox_style(mb)
+            mb.exec_()
+        self.accept()
+                #end of replaced part 
+           

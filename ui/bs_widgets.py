@@ -68,7 +68,7 @@ class BSDateEdit(QWidget):
         self._input = QLineEdit()
         self._input.setPlaceholderText("YYYY-MM-DD (BS)")
         self._input.setFixedHeight(36)
-        self._input.setMinimumWidth(120)
+        self._input.setMinimumWidth(160)
         self._input.setAlignment(Qt.AlignCenter)
         self._input.setStyleSheet(self._valid_style())
         self._input.editingFinished.connect(self._on_text_edited)
