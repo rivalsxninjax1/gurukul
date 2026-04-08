@@ -29,6 +29,7 @@ a = Analysis(
         'PIL',
         'PIL.Image',
         'PyQt5',
+        'PyQt5.QtPrintSupport',
         'PyQt5.QtWidgets',
         'PyQt5.QtCore',
         'PyQt5.QtGui',
