@@ -15,7 +15,10 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from database.connection import get_session
 from models.student import Student
-from utils.bs_converter import bs_str, today_bs_tuple, bs_month_ad_range, ad_to_bs
+from models.teacher import Teacher
+from models.schedule import Schedule
+from models.attendance import TeacherAttendance
+from utils.bs_converter import bs_str, today_bs_tuple, bs_month_ad_range
 from datetime import date
 import logging
 
@@ -77,7 +80,7 @@ INFO_STYLE = TableStyle([
 ])
 
 def _build_pdf_header(content: list, centre_name: str,
-                       subtitle: str):
+                      centre_address: str, subtitle: str):
     """
     Build standard PDF header with logo (if available) + institution name + address.
     Appends flowables to `content` list.
@@ -106,7 +109,7 @@ def _build_pdf_header(content: list, centre_name: str,
 
     content.append(Paragraph(centre_name, TITLE_STYLE))
     content.append(Paragraph(
-        CENTRE_ADDRESS, SUBTITLE_STYLE
+        centre_address, SUBTITLE_STYLE
     ))
     content.append(Paragraph(subtitle, SUBTITLE_STYLE))
     content.append(HRFlowable(
@@ -116,7 +119,8 @@ def _build_pdf_header(content: list, centre_name: str,
 
 
 def export_student_list_pdf(filepath: str,
-                             centre_name: str = "GURUKUL ACADEMY AND TRAINING CENTER"):
+                            centre_name: str = CENTRE_NAME,
+                            centre_address: str = CENTRE_ADDRESS):
     session = get_session()
     students = session.query(Student).order_by(Student.name).all()
     rows = [["#", "User ID", "Name", "Phone",
@@ -142,7 +146,7 @@ def export_student_list_pdf(filepath: str,
     )
     content = []
     _build_pdf_header(
-        content, CENTRE_NAME,
+        content, centre_name, centre_address,
         f"Student List  ·  Generated: {bs_str(date.today())}"
         f"  ·  Total: {len(students)} students"
     )
@@ -157,7 +161,8 @@ def export_student_list_pdf(filepath: str,
 
 
 def export_student_profile_pdf(student_id: int, filepath: str,
-                                centre_name: str = "GURUKUL ACADEMY AND TRAINING CENTER"):
+                               centre_name: str = CENTRE_NAME,
+                               centre_address: str = CENTRE_ADDRESS):
     from services.subscription_service import (
         get_active_subscription, get_subscription_history
     )
@@ -187,7 +192,7 @@ def export_student_profile_pdf(student_id: int, filepath: str,
 
     sub       = get_active_subscription(student_id)
     analytics = get_two_month_analytics(student_id, join_date_ad)
-    all_exams = get_results_for_student(student_id)
+    all_exams = get_results_for_student(student_id, join_date_ad)
 
     # Filter exams: only those after join date and within last 1 BS month
     today_bs_y, today_bs_m, _ = today_bs_tuple()
@@ -207,7 +212,7 @@ def export_student_profile_pdf(student_id: int, filepath: str,
     content = []
 
     # Header
-    _build_pdf_header(content, CENTRE_NAME, "Student Profile")
+    _build_pdf_header(content, centre_name, centre_address, "Student Profile")
 
     # Personal details
     info_data = [
@@ -300,9 +305,144 @@ def export_student_profile_pdf(student_id: int, filepath: str,
         width="100%", thickness=0.5, color=colors.HexColor("#cccccc")
     ))
     content.append(Paragraph(
-        f"Generated: {bs_str(date.today())}  ·  {centre_name}",
+        f"Generated: {bs_str(date.today())}  ·  {centre_name}  ·  {centre_address}",
         ParagraphStyle("footer", parent=styles["Normal"],
                        fontSize=8, textColor=colors.HexColor("#888888"))
     ))
     doc.build(content)
     logger.info(f"Student profile PDF: {filepath}")
+
+
+def export_teacher_profile_pdf(teacher_id: int, filepath: str,
+                               centre_name: str = CENTRE_NAME,
+                               centre_address: str = CENTRE_ADDRESS):
+    from services.attendance_analytics_service import (
+        get_teacher_two_month_analytics, bs_month_name
+    )
+
+    session = get_session()
+    t = session.query(Teacher).get(teacher_id)
+    if not t:
+        session.close()
+        return
+
+    schedule_models = session.query(Schedule).filter_by(
+        teacher_id=teacher_id
+    ).order_by(Schedule.day_of_week.asc(), Schedule.start_time.asc()).all()
+
+    attendance_models = session.query(TeacherAttendance).filter(
+        TeacherAttendance.teacher_id == teacher_id
+    ).order_by(TeacherAttendance.date.desc()).limit(10).all()
+    schedules = []
+    for sched in schedule_models:
+        schedules.append({
+            "day": sched.day_of_week,
+            "class": sched.class_.name if sched.class_ else "—",
+            "group": sched.group.name if sched.group else "—",
+            "subject": sched.subject or "—",
+            "start": sched.start_time.strftime("%H:%M") if sched.start_time else "—",
+            "end": sched.end_time.strftime("%H:%M") if sched.end_time else "—",
+        })
+    atts = [{
+        "date": bs_str(rec.date),
+        "entry": str(rec.entry_time) if rec.entry_time else "—",
+        "exit":  str(rec.exit_time)  if rec.exit_time  else "—",
+        "status": rec.status or "Present",
+    } for rec in attendance_models]
+    session.close()
+
+    analytics = get_teacher_two_month_analytics(teacher_id, t.join_date)
+    join_bs = bs_str(t.join_date) if t.join_date else "—"
+
+    doc = SimpleDocTemplate(
+        filepath,
+        pagesize=A4,
+        leftMargin=1.5*cm, rightMargin=1.5*cm,
+        topMargin=1.5*cm,  bottomMargin=1.5*cm
+    )
+    content = []
+
+    _build_pdf_header(content, centre_name, centre_address, "Teacher Profile")
+
+    info_data = [
+        ["Name", t.name, "Teacher ID", t.user_id],
+        ["Phone", t.phone or "—", "Subject", t.subject or "—"],
+        ["Address", t.address or "—", "Join Date (BS)", join_bs],
+    ]
+    info_t = Table(info_data, colWidths=[3*cm, 6*cm, 3*cm, 6*cm])
+    info_t.setStyle(INFO_STYLE)
+    content.append(info_t)
+    content.append(Spacer(1, 12))
+
+    # Attendance summary (two months)
+    att_rows = [["BS Month", "Working Days", "Present",
+                 "Absent", "Incomplete", "Holiday"]]
+    for key in ("current", "previous"):
+        stats = analytics.get(key) if analytics else None
+        if not stats or not stats.get("bs_month"):
+            continue
+        label = f"{bs_month_name(stats['bs_month'])} {stats.get('bs_year', '')}".strip()
+        att_rows.append([
+            label,
+            str(stats.get("working_days", 0)),
+            str(stats.get("present", 0)),
+            str(stats.get("absent", 0)),
+            str(stats.get("incomplete", 0)),
+            str(stats.get("holiday", 0)),
+        ])
+    if len(att_rows) > 1:
+        content.append(Paragraph("Attendance Summary", SECTION_STYLE))
+        att_t = Table(att_rows,
+                      colWidths=[4*cm, 3*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm])
+        att_t.setStyle(TBL_STYLE)
+        content.append(att_t)
+        content.append(Spacer(1, 12))
+
+    # Recent attendance log
+    content.append(Paragraph("Recent Attendance", SECTION_STYLE))
+    if atts:
+        att_table = [["Date (BS)", "Entry", "Exit", "Status"]]
+        for rec in atts:
+            att_table.append([
+                rec["date"], rec["entry"], rec["exit"], rec["status"],
+            ])
+        att_t = Table(att_table,
+                      colWidths=[3.5*cm, 3*cm, 3*cm, 4*cm])
+        att_t.setStyle(TBL_STYLE)
+        content.append(att_t)
+    else:
+        content.append(Paragraph("No attendance records.", BODY_STYLE))
+    content.append(Spacer(1, 12))
+
+    # Schedule
+    content.append(Paragraph("Assigned Schedule", SECTION_STYLE))
+    if schedules:
+        sched_rows = [["Day", "Class", "Group", "Subject", "Time"]]
+        for sched in schedules:
+            sched_rows.append([
+                sched["day"],
+                sched["class"],
+                sched["group"],
+                sched["subject"],
+                (f"{sched['start']} – {sched['end']}"
+                 if sched["start"] != "—" and sched["end"] != "—"
+                 else "—"),
+            ])
+        sched_t = Table(sched_rows,
+                        colWidths=[2.5*cm, 3*cm, 3*cm, 3.5*cm, 3*cm])
+        sched_t.setStyle(TBL_STYLE)
+        content.append(sched_t)
+    else:
+        content.append(Paragraph("No schedule assigned.", BODY_STYLE))
+
+    content.append(Spacer(1, 16))
+    content.append(HRFlowable(
+        width="100%", thickness=0.5, color=colors.HexColor("#cccccc")
+    ))
+    content.append(Paragraph(
+        f"Generated: {bs_str(date.today())}  ·  {centre_name}  ·  {centre_address}",
+        ParagraphStyle("footer", parent=styles["Normal"],
+                       fontSize=8, textColor=colors.HexColor("#888888"))
+    ))
+    doc.build(content)
+    logger.info(f"Teacher profile PDF: {filepath}")

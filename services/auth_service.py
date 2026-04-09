@@ -21,3 +21,20 @@ def verify_login(username: str, password: str) -> bool:
     if not user:
         return False
     return bcrypt.checkpw(password.encode(), user.password.encode())
+
+
+def change_password(username: str, old_password: str,
+                    new_password: str) -> tuple[bool, str]:
+    session = get_session()
+    user = session.query(User).filter_by(username=username).first()
+    if not user:
+        session.close()
+        return False, "User not found."
+    if not bcrypt.checkpw(old_password.encode(), user.password.encode()):
+        session.close()
+        return False, "Old password is incorrect."
+    hashed = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt())
+    user.password = hashed.decode()
+    session.commit()
+    session.close()
+    return True, "Password updated successfully."

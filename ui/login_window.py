@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from services.auth_service import verify_login
+from services.session_service import set_current_user, clear_current_user
 from ui.styles import BTN_PRIMARY, INPUT_STYLE
 
 CENTRE_NAME = "Gurukul Tuition Centre"
@@ -18,6 +19,7 @@ class LoginWindow(QWidget):
         self.setMinimumSize(480, 540)
         self.setStyleSheet("background: #f0f0f0;")
         self._build_ui()
+        clear_current_user()
 
     def _build_ui(self):
         outer = QVBoxLayout(self)
@@ -180,6 +182,7 @@ class LoginWindow(QWidget):
             return
 
         if verify_login(username, password):
+            set_current_user(username)
             self.on_success()
             self.close()
         else:

@@ -1,6 +1,7 @@
 from database.connection import get_session
 from models.exam import Exam, ExamSubject, StudentResult
 from models.student import Student
+from datetime import date as date_type
 import logging
 
 logger = logging.getLogger(__name__)
@@ -99,12 +100,20 @@ def save_result(student_id: int, exam_id: int,
     session.close()
 
 
-def get_results_for_student(student_id: int) -> list:
-    """Returns grouped results by exam."""
+def get_results_for_student(student_id: int,
+                            join_date: date_type | None = None) -> list:
+    """Returns grouped results by exam (optionally filtered by join date)."""
     session = get_session()
-    exams = session.query(Exam).all()
+    exams = session.query(Exam).order_by(Exam.created_at.desc()).all()
     output = []
     for exam in exams:
+        if join_date and exam.created_at:
+            try:
+                exam_day = exam.created_at.date()
+            except Exception:
+                exam_day = None
+            if exam_day and exam_day < join_date:
+                continue
         subjects_data = []
         total_full   = 0
         total_scored = 0

@@ -1,4 +1,3 @@
-# gurukul.spec
 import sys
 import os
 
@@ -29,7 +28,6 @@ a = Analysis(
         'PIL',
         'PIL.Image',
         'PyQt5',
-        'PyQt5.QtPrintSupport',
         'PyQt5.QtWidgets',
         'PyQt5.QtCore',
         'PyQt5.QtGui',
@@ -64,10 +62,10 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,          # No black console window
+    console=False,
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,              # Set to 'assets/icon.ico' if you have one
+    icon=None,
 )

@@ -40,13 +40,15 @@ class SchedulePage(QWidget):
         cl = QVBoxLayout(card); cl.setContentsMargins(0, 0, 0, 0)
 
         self.table = QTableWidget()
-        self.table.setColumnCount(7)
+        self.table.setColumnCount(8)
         self.table.setHorizontalHeaderLabels(
-            ["Day", "Class", "Group", "Teacher", "Subject", "Start", "End"]
+            ["Day", "Class", "Group", "Teacher", "Subject", "Start", "End", "Actions"]
         )
         hh = self.table.horizontalHeader()
         for i in range(7):
             hh.setSectionResizeMode(i, QHeaderView.Stretch)
+        hh.setSectionResizeMode(7, QHeaderView.Fixed)
+        self.table.setColumnWidth(7, 120)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setAlternatingRowColors(True)
@@ -85,20 +87,40 @@ class SchedulePage(QWidget):
                 item = QTableWidgetItem(val)
                 item.setForeground(Qt.black)
                 self.table.setItem(r, c, item)
+            action_cell = QWidget()
+            action_layout = QHBoxLayout(action_cell)
+            action_layout.setContentsMargins(4, 0, 4, 0)
+            action_layout.setSpacing(6)
+            edit_btn = QPushButton("Edit")
+            edit_btn.setStyleSheet(BTN_SECONDARY)
+            edit_btn.clicked.connect(
+                lambda _, sid=row["id"]: self._edit_schedule(sid)
+            )
+            action_layout.addWidget(edit_btn)
+            action_layout.addStretch()
+            self.table.setCellWidget(r, 7, action_cell)
             self.table.setRowHeight(r, 40)
 
     def _add_schedule(self):
-        if ScheduleDialog(parent=self).exec_(): 
+        if ScheduleDialog(parent=self).exec_():
+            self.refresh_table()
+
+    def _edit_schedule(self, schedule_id: int):
+        if ScheduleDialog(schedule_id=schedule_id, parent=self).exec_():
             self.refresh_table()
 
 
 class ScheduleDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, schedule_id=None, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Add Schedule")
+        self.schedule_id = schedule_id
+        self._pending_group_id = None
+        self.setWindowTitle("Edit Schedule" if schedule_id else "Add Schedule")
         self.setMinimumWidth(420)
         self.setStyleSheet(DIALOG_STYLE)
         self._build_ui()
+        if self.schedule_id:
+            self._load_data()
 
     def _build_ui(self):
         root = QVBoxLayout(self)
@@ -177,15 +199,21 @@ class ScheduleDialog(QDialog):
         btn_row.addWidget(cancel); btn_row.addSpacing(10); btn_row.addWidget(save)
         root.addWidget(footer)
 
-    def _load_groups(self):
+    def _load_groups(self, *_):
         class_id = self.class_combo.currentData()
         self.group_combo.clear()
         self.group_combo.addItem("— All Groups —", None)
         if class_id:
             session = get_session()
             groups = session.query(Group).filter_by(class_id=class_id).all()
-            for g in groups: self.group_combo.addItem(g.name, g.id)
+            for g in groups:
+                self.group_combo.addItem(g.name, g.id)
             session.close()
+        if self._pending_group_id is not None:
+            idx = self.group_combo.findData(self._pending_group_id)
+            if idx >= 0:
+                self.group_combo.setCurrentIndex(idx)
+        self._pending_group_id = None
 
     def _save(self):
         class_id = self.class_combo.currentData()
@@ -195,14 +223,53 @@ class ScheduleDialog(QDialog):
         st = self.start_time.time(); et = self.end_time.time()
         from datetime import time
         session = get_session()
-        s = Schedule(
-            day_of_week = self.day_combo.currentText(),
-            class_id    = class_id,
-            group_id    = self.group_combo.currentData(),
-            teacher_id  = self.teacher_combo.currentData(),
-            subject     = self.subject_input.text().strip(),
-            start_time  = time(st.hour(), st.minute()),
-            end_time    = time(et.hour(), et.minute()),
-        )
-        session.add(s); session.commit(); session.close()
+        if self.schedule_id:
+            sched = session.query(Schedule).get(self.schedule_id)
+            if not sched:
+                session.close()
+                QMessageBox.warning(
+                    self, "Not found", "Schedule entry no longer exists."
+                )
+                return
+        else:
+            sched = Schedule()
+            session.add(sched)
+
+        sched.day_of_week = self.day_combo.currentText()
+        sched.class_id    = class_id
+        sched.group_id    = self.group_combo.currentData()
+        sched.teacher_id  = self.teacher_combo.currentData()
+        sched.subject     = self.subject_input.text().strip()
+        sched.start_time  = time(st.hour(), st.minute())
+        sched.end_time    = time(et.hour(), et.minute())
+
+        session.commit()
+        session.close()
         self.accept()
+
+    def _load_data(self):
+        session = get_session()
+        sched = session.query(Schedule).get(self.schedule_id)
+        session.close()
+        if not sched:
+            return
+        self.day_combo.setCurrentText(sched.day_of_week)
+        idx = self.class_combo.findData(sched.class_id)
+        if idx >= 0:
+            self.class_combo.setCurrentIndex(idx)
+        else:
+            self.class_combo.setCurrentIndex(0)
+        self._pending_group_id = sched.group_id
+        self._load_groups()
+        tidx = self.teacher_combo.findData(sched.teacher_id)
+        if tidx >= 0:
+            self.teacher_combo.setCurrentIndex(tidx)
+        self.subject_input.setText(sched.subject or "")
+        if sched.start_time:
+            self.start_time.setTime(QTime(
+                sched.start_time.hour, sched.start_time.minute
+            ))
+        if sched.end_time:
+            self.end_time.setTime(QTime(
+                sched.end_time.hour, sched.end_time.minute
+            ))

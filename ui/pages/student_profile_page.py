@@ -4,8 +4,8 @@ from PyQt5.QtWidgets import (
     QScrollArea, QFileDialog, QMessageBox, QDialog,
     QVBoxLayout as QVL
 )
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
+from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtGui import QColor, QDesktopServices
 from database.connection import get_session
 from models.student import Student
 from services.subscription_service import (
@@ -13,14 +13,13 @@ from services.subscription_service import (
     get_outstanding_balance, get_all_payments_for_student,
 )
 from services.attendance_analytics_service import (
-    get_two_month_analytics, bs_month_name
+    get_monthly_analytics, bs_month_name
 )
 from services.exam_service import get_results_for_student
-from services.print_service import (
-    get_student_profile_html, print_html, html_to_pdf
-)
+from services.export_service import export_student_profile_pdf
+from services.attendance_query_service import get_student_attendance_history
 from services.settings_service import get_setting
-from utils.bs_converter import bs_str
+from utils.bs_converter import bs_str, ad_to_bs, today_bs_tuple
 from utils.logo_helper import logo_pixmap
 from ui.styles import (
     BTN_PRIMARY, BTN_SECONDARY, TABLE_STYLE, PAGE_TITLE_STYLE,
@@ -30,6 +29,7 @@ from ui.styles import (
     STATUS_INCOMPLETE, STATUS_INCOMPLETE_BG,
     apply_msgbox_style,
 )
+from ui.event_bus import bus
 
 CENTRE_NAME    = "GURUKUL ACADEMY AND TRAINING CENTER"
 CENTRE_ADDRESS = "Biratnagar-1, Bhatta Chowk"
@@ -76,6 +76,13 @@ class StudentProfilePage(QWidget):
         self._join_date   = None
         self._att_visible = False
         self._build_ui()
+        bus.attendance_imported.connect(self._handle_attendance_sync)
+        bus.payment_added.connect(self._handle_attendance_sync)
+        bus.student_saved.connect(self._handle_attendance_sync)
+
+    def _handle_attendance_sync(self):
+        if self._student_id:
+            self.load_student(self._student_id)
 
     def _build_ui(self):
         outer = QVBoxLayout(self)
@@ -334,51 +341,82 @@ class StudentProfilePage(QWidget):
         card.setStyleSheet(CARD_STYLE)
         layout = QVBoxLayout(card)
         layout.setContentsMargins(16, 14, 16, 14)
-        layout.setSpacing(14)
-        self._analytics_rows = {}
-        for period in ["current", "previous"]:
-            period_lbl = QLabel("—")
-            period_lbl.setStyleSheet(
-                "font-size: 12px; font-weight: bold; color: #888888;"
+        layout.setSpacing(8)
+
+        info_lbl = QLabel("Analytics reflect the BS month this student joined.")
+        info_lbl.setStyleSheet(
+            "font-size: 11px; color: #777777; background: transparent; border: none;"
+        )
+        layout.addWidget(info_lbl)
+
+        period_lbl = QLabel("—")
+        period_lbl.setStyleSheet(
+            "font-size: 12px; font-weight: bold; color: #888888;"
+            "background: transparent; border: none;"
+        )
+        layout.addWidget(period_lbl)
+
+        cards_row = QHBoxLayout()
+        cards_row.setSpacing(10)
+        stat_cards = {}
+        for key, label, fg, bg in [
+            ("working_days", "Working Days", "#333333",      "#f0f0f0"),
+            ("present",      "Present",      STATUS_PRESENT, STATUS_PRESENT_BG),
+            ("absent",       "Absent",       STATUS_ABSENT,  STATUS_ABSENT_BG),
+            ("incomplete",   "Incomplete",   "#7a4f00",       "#fdf3e0"),
+            ("holiday",      "Holiday",      "#555555",       "#eeeeee"),
+        ]:
+            mini = QFrame()
+            mini.setStyleSheet(f"""
+                QFrame {{ background: {bg}; border: 1px solid #e0e0e0; border-radius: 6px; }}
+            """)
+            mini.setFixedHeight(64)
+            inner = QVBoxLayout(mini)
+            inner.setContentsMargins(12, 8, 12, 8)
+            inner.setSpacing(2)
+            t = QLabel(label)
+            t.setStyleSheet(
+                f"font-size: 11px; font-weight: bold; color: {fg};"
                 "background: transparent; border: none;"
             )
-            layout.addWidget(period_lbl)
-            cards_row = QHBoxLayout()
-            cards_row.setSpacing(10)
-            stat_cards = {}
-            for key, label, fg, bg in [
-                ("working_days", "Working Days", "#333333",      "#f0f0f0"),
-                ("present",      "Present",      STATUS_PRESENT, STATUS_PRESENT_BG),
-                ("absent",       "Absent",       STATUS_ABSENT,  STATUS_ABSENT_BG),
-                ("incomplete",   "Incomplete",   "#7a4f00",       "#fdf3e0"),
-                ("holiday",      "Holiday",      "#555555",       "#eeeeee"),
-            ]:
-                mini = QFrame()
-                mini.setStyleSheet(f"""
-                    QFrame {{ background: {bg}; border: 1px solid #e0e0e0; border-radius: 6px; }}
-                """)
-                mini.setFixedHeight(64)
-                inner = QVBoxLayout(mini)
-                inner.setContentsMargins(12, 8, 12, 8)
-                inner.setSpacing(2)
-                t = QLabel(label)
-                t.setStyleSheet(
-                    f"font-size: 11px; font-weight: bold; color: {fg};"
-                    "background: transparent; border: none;"
-                )
-                v = QLabel("—")
-                v.setStyleSheet(
-                    f"font-size: 18px; font-weight: bold; color: {fg};"
-                    "background: transparent; border: none;"
-                )
-                inner.addWidget(t); inner.addWidget(v)
-                cards_row.addWidget(mini)
-                stat_cards[key] = v
-            layout.addLayout(cards_row)
-            self._analytics_rows[period] = {
-                "label": period_lbl, "stat_cards": stat_cards,
-            }
+            v = QLabel("—")
+            v.setStyleSheet(
+                f"font-size: 18px; font-weight: bold; color: {fg};"
+                "background: transparent; border: none;"
+            )
+            inner.addWidget(t); inner.addWidget(v)
+            cards_row.addWidget(mini)
+            stat_cards[key] = v
+        layout.addLayout(cards_row)
+
+        self._analytics_section = {
+            "label": period_lbl,
+            "stat_cards": stat_cards,
+        }
         return card
+
+    def _resolve_join_bs_month(self):
+        if self._join_date:
+            bs = ad_to_bs(self._join_date)
+        else:
+            bs = today_bs_tuple()
+        if not bs or bs[0] is None:
+            bs = today_bs_tuple()
+        return bs[0], bs[1]
+
+    def _update_analytics_view(self, analytics: dict | None):
+        section = getattr(self, "_analytics_section", None)
+        if not section:
+            return
+        if analytics and analytics.get("bs_year"):
+            section["label"].setText(
+                f"{bs_month_name(analytics['bs_month'])} {analytics['bs_year']}"
+            )
+        else:
+            section["label"].setText("—")
+        for key in ["working_days", "present", "absent", "incomplete", "holiday"]:
+            val = analytics.get(key) if analytics else None
+            section["stat_cards"][key].setText(str(val if val is not None else 0))
 
     def _make_table(self, headers, max_h=None):
         t = QTableWidget()
@@ -426,18 +464,16 @@ class StudentProfilePage(QWidget):
         self._info_vals["Class"].setText(s.class_.name if s.class_ else "—")
         self._info_vals["Group"].setText(s.group.name  if s.group  else "—")
 
-        atts = sorted(
-            [a for a in s.attendances
-             if (s.join_date is None or a.date >= s.join_date)],
-            key=lambda a: a.date, reverse=True
+        history = get_student_attendance_history(
+            student_id, s.join_date, days=None
         )
-        self.att_table.setRowCount(len(atts))
-        for r, att in enumerate(atts):
+        self.att_table.setRowCount(len(history))
+        for r, att in enumerate(history):
             vals = [
-                bs_str(att.date),
-                str(att.entry_time) if att.entry_time else "—",
-                str(att.exit_time)  if att.exit_time  else "—",
-                att.status or "",
+                bs_str(att["date"]),
+                str(att["entry_time"]) if att["entry_time"] else "—",
+                str(att["exit_time"]) if att["exit_time"] else "—",
+                att["status"],
             ]
             for c, val in enumerate(vals):
                 item = QTableWidgetItem(val)
@@ -492,21 +528,9 @@ class StudentProfilePage(QWidget):
                 "font-size: 13px; color: #888888; background: transparent; border: none;"
             )
 
-        analytics = get_two_month_analytics(student_id, self._join_date)
-        for period_key in ("current", "previous"):
-            data     = analytics[period_key]
-            row_info = self._analytics_rows[period_key]
-            row_info["label"].setText(
-                f"{bs_month_name(data['bs_month'])} {data['bs_year']}"
-            )
-            for key, val in [
-                ("working_days", str(data["working_days"])),
-                ("present",      str(data["present"])),
-                ("absent",       str(data["absent"])),
-                ("incomplete",   str(data["incomplete"])),
-                ("holiday",      str(data["holiday"])),
-            ]:
-                row_info["stat_cards"][key].setText(val)
+        by, bm = self._resolve_join_bs_month()
+        analytics = get_monthly_analytics(student_id, by, bm, self._join_date)
+        self._update_analytics_view(analytics)
 
         history = get_subscription_history(student_id)
         self.sub_hist_table.setRowCount(len(history))
@@ -551,8 +575,10 @@ class StudentProfilePage(QWidget):
             item = self._exam_results_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
-        exam_data = [e for e in get_results_for_student(student_id)
-                     if e["has_results"]]
+        exam_data = [
+            e for e in get_results_for_student(student_id, self._join_date)
+            if e["has_results"]
+        ]
         if not exam_data:
             empty = QLabel("No exam results yet.")
             empty.setStyleSheet(
@@ -626,16 +652,38 @@ class StudentProfilePage(QWidget):
     # ── Print & Export actions ────────────────────────────────────────────────
 
     def _print_profile(self):
-        """Open native print dialog — no PDF created."""
+        """Generate PDF (same as download) and open it for printing."""
         if not self._student_id:
             return
-        html = get_student_profile_html(self._student_id)
-        printed = print_html(html, parent=self,
-                             dialog_title="Print Student Profile")
-        if printed:
-            from ui.widgets import Toast
-            # Show brief confirmation (can't show Toast easily here — use statusbar)
-            pass  # print dialog handles its own feedback
+        import tempfile
+
+        centre_name, centre_address = self._centre_meta()
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        tmp_path = tmp.name
+        tmp.close()
+
+        mb = QMessageBox(self)
+        try:
+            export_student_profile_pdf(
+                self._student_id, tmp_path,
+                centre_name, centre_address
+            )
+        except Exception as exc:
+            mb.setWindowTitle("Error")
+            mb.setText(f"Failed to prepare PDF:\n{exc}")
+            apply_msgbox_style(mb)
+            mb.exec_()
+            return
+
+        opened = self._open_pdf(tmp_path)
+        if opened:
+            mb.setWindowTitle("Profile Ready")
+            mb.setText("Profile PDF opened in your default viewer.\nPlease print it from there.")
+        else:
+            mb.setWindowTitle("Viewer Unavailable")
+            mb.setText("Couldn't open the profile PDF automatically.\nPlease use Download PDF instead.")
+        apply_msgbox_style(mb)
+        mb.exec_()
 
     def _export_pdf(self):
         """Save profile as PDF file."""
@@ -647,15 +695,20 @@ class StudentProfilePage(QWidget):
             "PDF Files (*.pdf)"
         )
         if path:
-            html = get_student_profile_html(self._student_id)
-            ok   = html_to_pdf(html, path)
-            mb   = QMessageBox(self)
-            if ok:
+            centre_name = get_setting("centre_name", CENTRE_NAME)
+            centre_address = get_setting("centre_address", CENTRE_ADDRESS)
+            mb = QMessageBox(self)
+            try:
+                export_student_profile_pdf(
+                    self._student_id, path,
+                    centre_name, centre_address
+                )
+            except Exception as exc:  # pragma: no cover - UI feedback only
+                mb.setWindowTitle("Error")
+                mb.setText(f"Failed to save PDF:\n{exc}")
+            else:
                 mb.setWindowTitle("Downloaded")
                 mb.setText(f"Profile saved:\n{path}")
-            else:
-                mb.setWindowTitle("Error")
-                mb.setText("Failed to save PDF. Please try again.")
             apply_msgbox_style(mb)
             mb.exec_()
 
@@ -666,3 +719,12 @@ class StudentProfilePage(QWidget):
                 parent._switch_page(1)
                 break
             parent = parent.parent()
+
+    def _centre_meta(self):
+        name = get_setting("centre_name", CENTRE_NAME)
+        addr = get_setting("centre_address", CENTRE_ADDRESS)
+        return name or CENTRE_NAME, addr or CENTRE_ADDRESS
+
+    def _open_pdf(self, pdf_path: str) -> bool:
+        url = QUrl.fromLocalFile(pdf_path)
+        return QDesktopServices.openUrl(url)

@@ -19,8 +19,9 @@ from ui.styles import (
     SECTION_LABEL_STYLE, TAB_STYLE,
     STATUS_PRESENT, STATUS_PRESENT_BG,
     STATUS_ABSENT, STATUS_ABSENT_BG,
-    STATUS_INCOMPLETE, STATUS_INCOMPLETE_BG
+    STATUS_INCOMPLETE, STATUS_INCOMPLETE_BG,
 )
+from ui.widgets import FilterField
 
 
 class ReportsPage(QWidget):
@@ -54,15 +55,7 @@ class ReportsPage(QWidget):
         layout.setSpacing(12)
 
         filter_row = QHBoxLayout()
-        filter_row.setSpacing(12)
-
-        def lbl(t):
-            l = QLabel(t)
-            l.setStyleSheet(
-                "font-size: 12px; font-weight: bold; color: #444444;"
-                "background: transparent; border: none;"
-            )
-            return l
+        filter_row.setSpacing(16)
 
         # BS date pickers — default to today
         self.att_from = BSDateEdit()
@@ -95,16 +88,22 @@ class ReportsPage(QWidget):
         pdf_btn.setStyleSheet(BTN_SECONDARY)
         pdf_btn.clicked.connect(self._export_att_pdf)
 
-        filter_row.addWidget(lbl("From (BS):"))
-        filter_row.addWidget(self.att_from)
-        filter_row.addWidget(lbl("To (BS):"))
-        filter_row.addWidget(self.att_to)
-        filter_row.addWidget(lbl("Class:"))
-        filter_row.addWidget(self.att_class_combo)
+        clear_btn = QPushButton("Clear")
+        clear_btn.setStyleSheet(BTN_SECONDARY)
+        clear_btn.clicked.connect(self._clear_attendance_filters)
+
+        from_field  = FilterField("From Date (BS)", self.att_from, width=210)
+        to_field    = FilterField("To Date (BS)",   self.att_to,   width=210)
+        class_field = FilterField("Class",          self.att_class_combo, width=170)
+
+        filter_row.addWidget(from_field)
+        filter_row.addWidget(to_field)
+        filter_row.addWidget(class_field)
         filter_row.addStretch()
         filter_row.addWidget(gen_btn)
         filter_row.addWidget(xl_btn)
         filter_row.addWidget(pdf_btn)
+        filter_row.addWidget(clear_btn)
         layout.addLayout(filter_row)
 
         self.att_table = self._make_table(
@@ -187,6 +186,13 @@ class ReportsPage(QWidget):
             )
             QMessageBox.information(self, "Saved", f"Saved to:\n{path}")
 
+    def _clear_attendance_filters(self):
+        self.att_from.set_today()
+        self.att_to.set_today()
+        self.att_class_combo.setCurrentIndex(0)
+        self.att_table.setRowCount(0)
+        self._att_rows = []
+
     # ── Revenue tab ───────────────────────────────────────────────────────────
 
     def _build_revenue_tab(self):
@@ -196,10 +202,21 @@ class ReportsPage(QWidget):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
 
-        btn_row = QHBoxLayout()
-        gen_btn = QPushButton("Generate Revenue Report")
+        filter_row = QHBoxLayout()
+        filter_row.setSpacing(16)
+
+        self.rev_from = BSDateEdit()
+        self.rev_from.set_today()
+        self.rev_to = BSDateEdit()
+        self.rev_to.set_today()
+
+        gen_btn = QPushButton("Generate")
         gen_btn.setStyleSheet(BTN_PRIMARY)
         gen_btn.clicked.connect(self._gen_revenue)
+
+        clear_btn = QPushButton("Clear")
+        clear_btn.setStyleSheet(BTN_SECONDARY)
+        clear_btn.clicked.connect(self._clear_revenue_filters)
 
         xl_btn = QPushButton("Export Excel")
         xl_btn.setStyleSheet(BTN_SECONDARY)
@@ -209,11 +226,17 @@ class ReportsPage(QWidget):
         pdf_btn.setStyleSheet(BTN_SECONDARY)
         pdf_btn.clicked.connect(self._export_rev_pdf)
 
-        btn_row.addWidget(gen_btn)
-        btn_row.addStretch()
-        btn_row.addWidget(xl_btn)
-        btn_row.addWidget(pdf_btn)
-        layout.addLayout(btn_row)
+        from_field = FilterField("From Date (BS)", self.rev_from, width=210)
+        to_field   = FilterField("To Date (BS)",   self.rev_to,   width=210)
+
+        filter_row.addWidget(from_field)
+        filter_row.addWidget(to_field)
+        filter_row.addStretch()
+        filter_row.addWidget(gen_btn)
+        filter_row.addWidget(clear_btn)
+        filter_row.addWidget(xl_btn)
+        filter_row.addWidget(pdf_btn)
+        layout.addLayout(filter_row)
 
         self.rev_table = self._make_table(
             ["User ID", "Name", "Class",
@@ -224,7 +247,18 @@ class ReportsPage(QWidget):
         return tab
 
     def _gen_revenue(self):
-        rows = get_revenue_report()
+        from_ad = self.rev_from.get_ad_date()
+        to_ad   = self.rev_to.get_ad_date()
+        if not from_ad or not to_ad:
+            QMessageBox.warning(self, "Invalid Date",
+                                "Please enter valid BS dates.")
+            return
+        if from_ad > to_ad:
+            QMessageBox.warning(self, "Date Range",
+                                "From date must be before To date.")
+            return
+
+        rows = get_revenue_report(from_ad, to_ad)
         self._rev_rows = rows
         self.rev_table.setRowCount(len(rows))
         for r, row in enumerate(rows):
@@ -259,7 +293,10 @@ class ReportsPage(QWidget):
             self, "Save Excel", "revenue_report.xlsx", "Excel (*.xlsx)"
         )
         if path:
-            export_revenue_excel(self._rev_rows, path)
+            export_revenue_excel(
+                self._rev_rows, path,
+                self.rev_from.get_bs_str(), self.rev_to.get_bs_str()
+            )
             QMessageBox.information(self, "Saved", f"Saved to:\n{path}")
 
     def _export_rev_pdf(self):
@@ -270,8 +307,17 @@ class ReportsPage(QWidget):
             self, "Save PDF", "revenue_report.pdf", "PDF (*.pdf)"
         )
         if path:
-            export_revenue_pdf(self._rev_rows, path)
+            export_revenue_pdf(
+                self._rev_rows, path,
+                self.rev_from.get_bs_str(), self.rev_to.get_bs_str()
+            )
             QMessageBox.information(self, "Saved", f"Saved to:\n{path}")
+
+    def _clear_revenue_filters(self):
+        self.rev_from.set_today()
+        self.rev_to.set_today()
+        self.rev_table.setRowCount(0)
+        self._rev_rows = []
 
     def _make_table(self, headers):
         t = QTableWidget()

@@ -1,6 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QFrame
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QFrame, QSizePolicy
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor
+from ui.styles import FILTER_LABEL_STYLE
 
 
 class LoadingOverlay(QWidget):
@@ -76,3 +77,40 @@ class Toast(QLabel):
         )
         self.show()
         self._timer.start(2500)
+
+
+class FilterField(QWidget):
+    """
+    Stack a bold label above any input widget to keep filter rows consistent.
+
+    The wrapped widget keeps a 36px height, consistent padding, and optional
+    fixed width so attendance/ reports/ student lists all align visually and
+    never overlap when the window is resized.
+    """
+
+    def __init__(self, label: str, control: QWidget,
+                 width: int | None = None, parent=None):
+        super().__init__(parent)
+        self._control = control
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+
+        lbl = QLabel(label)
+        lbl.setStyleSheet(FILTER_LABEL_STYLE)
+        layout.addWidget(lbl)
+        layout.addWidget(control)
+
+        if hasattr(control, "setFixedHeight"):
+            control.setFixedHeight(36)
+        if width and hasattr(control, "setFixedWidth"):
+            control.setFixedWidth(width)
+        elif hasattr(control, "setMinimumWidth"):
+            control.setMinimumWidth(150)
+
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+    @property
+    def control(self) -> QWidget:
+        """Return the wrapped widget for additional configuration."""
+        return self._control

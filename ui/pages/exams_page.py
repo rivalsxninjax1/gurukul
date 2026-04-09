@@ -9,6 +9,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from database.connection import get_session
 from models.student import Student
+from models.class_group import Class, Group
 from models.exam import Exam, ExamSubject, StudentResult
 from services.exam_service import (
     get_all_exams, create_exam, delete_exam,
@@ -26,7 +27,7 @@ from ui.styles import (
     apply_msgbox_style,
 )
 from ui.event_bus import bus
-from ui.widgets import Toast
+from ui.widgets import Toast, FilterField
 
 
 class ExamsPage(QWidget):
@@ -34,6 +35,8 @@ class ExamsPage(QWidget):
         super().__init__()
         self.setStyleSheet("background: #f5f5f5;")
         self._selected_exam_id = None
+        self._filter_class_id  = None
+        self._filter_group_id  = None
         self._build_ui()
         self._load_exams()
         # Real-time: refresh student list when a new student is saved
@@ -178,6 +181,44 @@ class ExamsPage(QWidget):
         marks_hdr_l.addWidget(save_marks_btn)
         marks_cl.addWidget(marks_hdr_w)
 
+        # Filters just for marks entry
+        filter_frame = QFrame()
+        filter_frame.setStyleSheet(
+            "background: #fafafa; border-bottom: 1px solid #eeeeee;"
+        )
+        filter_layout = QHBoxLayout(filter_frame)
+        filter_layout.setContentsMargins(16, 10, 16, 10)
+        filter_layout.setSpacing(12)
+
+        session = get_session()
+        class_rows = session.query(Class).order_by(Class.name).all()
+        session.close()
+
+        self.class_filter = QComboBox()
+        self.class_filter.setStyleSheet(COMBO_STYLE)
+        self.class_filter.setFixedHeight(34)
+        self.class_filter.addItem("All Classes", None)
+        for cls in class_rows:
+            self.class_filter.addItem(cls.name, cls.id)
+        self.class_filter.currentIndexChanged.connect(
+            self._on_class_filter_changed
+        )
+
+        self.group_filter = QComboBox()
+        self.group_filter.setStyleSheet(COMBO_STYLE)
+        self.group_filter.setFixedHeight(34)
+        self.group_filter.addItem("All Groups", None)
+        self.group_filter.currentIndexChanged.connect(
+            self._on_group_filter_changed
+        )
+
+        class_field = FilterField("Class", self.class_filter, width=170)
+        group_field = FilterField("Group", self.group_filter, width=170)
+        filter_layout.addWidget(class_field)
+        filter_layout.addWidget(group_field)
+        filter_layout.addStretch()
+        marks_cl.addWidget(filter_frame)
+
         self.marks_table = QTableWidget()
         self.marks_table.setColumnCount(5)
         self.marks_table.setHorizontalHeaderLabels(
@@ -204,7 +245,12 @@ class ExamsPage(QWidget):
         prev_id = self.student_combo.currentData() \
                   if self.student_combo.count() > 0 else None
         session = get_session()
-        students = session.query(Student).order_by(Student.name).all()
+        query = session.query(Student)
+        if self._filter_class_id:
+            query = query.filter(Student.class_id == self._filter_class_id)
+        if self._filter_group_id:
+            query = query.filter(Student.group_id == self._filter_group_id)
+        students = query.order_by(Student.name).all()
         self.student_combo.blockSignals(True)
         self.student_combo.clear()
         self.student_combo.addItem("— Select Student —", None)
@@ -218,6 +264,28 @@ class ExamsPage(QWidget):
         session.close()
         # Reload marks table for newly selected student
         self._load_marks_table()
+
+    def _on_class_filter_changed(self):
+        self._filter_class_id = self.class_filter.currentData()
+        # Reload group options for selected class
+        self.group_filter.blockSignals(True)
+        self.group_filter.clear()
+        self.group_filter.addItem("All Groups", None)
+        if self._filter_class_id:
+            session = get_session()
+            groups = session.query(Group).filter_by(
+                class_id=self._filter_class_id
+            ).order_by(Group.name).all()
+            session.close()
+            for grp in groups:
+                self.group_filter.addItem(grp.name, grp.id)
+        self.group_filter.blockSignals(False)
+        self._filter_group_id = None
+        self._populate_students()
+
+    def _on_group_filter_changed(self):
+        self._filter_group_id = self.group_filter.currentData()
+        self._populate_students()
 
     def _load_exams(self):
         exams = get_all_exams()

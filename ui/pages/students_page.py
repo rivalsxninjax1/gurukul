@@ -9,6 +9,7 @@ from PyQt5.QtGui import QColor
 from database.connection import get_session
 from models.student import Student
 from models.class_group import Class, Group
+from sqlalchemy import or_
 from services.subscription_service import (
     create_subscription, get_student_subscription_flags
 )
@@ -22,9 +23,10 @@ from ui.styles import (
     TABLE_STYLE, INPUT_STYLE, INPUT_READONLY_STYLE, COMBO_STYLE,
     SPINBOX_STYLE, DIALOG_STYLE, FORM_LABEL_STYLE,
     PAGE_TITLE_STYLE, CARD_STYLE, SECTION_LABEL_STYLE,
+    FILTER_LABEL_STYLE,
 )
 from ui.event_bus import bus
-from ui.widgets import Toast
+from ui.widgets import Toast, FilterField
 
 FLAG_COLORS = {
     "active":          ("#27ae60", "#eafaf1"),
@@ -88,12 +90,9 @@ class StudentsPage(QWidget):
         fl.setContentsMargins(16, 10, 16, 10)
         fl.setSpacing(10)
 
-        def flbl(t):
-            l = QLabel(t)
-            l.setStyleSheet(
-                "font-size: 12px; font-weight: bold; color: #555555;"
-                "background: transparent; border: none;"
-            )
+        def flbl(text: str):
+            l = QLabel(text)
+            l.setStyleSheet(FILTER_LABEL_STYLE)
             return l
 
         session = get_session()
@@ -102,8 +101,6 @@ class StudentsPage(QWidget):
 
         self.class_filter = QComboBox()
         self.class_filter.setStyleSheet(COMBO_STYLE)
-        self.class_filter.setFixedHeight(34)
-        self.class_filter.setFixedWidth(150)
         self.class_filter.addItem("All Classes", None)
         for cid, cname in classes:
             self.class_filter.addItem(cname, cid)
@@ -111,16 +108,15 @@ class StudentsPage(QWidget):
 
         self.group_filter = QComboBox()
         self.group_filter.setStyleSheet(COMBO_STYLE)
-        self.group_filter.setFixedHeight(34)
-        self.group_filter.setFixedWidth(150)
         self.group_filter.addItem("All Groups", None)
         self.group_filter.currentIndexChanged.connect(self._on_group_filter)
 
-        fl.addWidget(flbl("Class:"))
-        fl.addWidget(self.class_filter)
-        fl.addWidget(flbl("Group:"))
-        fl.addWidget(self.group_filter)
-        fl.addSpacing(12)
+        class_field = FilterField("Class", self.class_filter, width=170)
+        group_field = FilterField("Group", self.group_filter, width=170)
+
+        fl.addWidget(class_field)
+        fl.addWidget(group_field)
+        fl.addSpacing(16)
         fl.addWidget(flbl("Status:"))
 
         self._filter_btns = {}
@@ -210,15 +206,21 @@ class StudentsPage(QWidget):
         self.refresh_table()
 
     def refresh_table(self):
-        search = self.search_input.text().strip().lower()
+        search = self.search_input.text().strip()
         session = get_session()
-        students = session.query(Student).all()
+        query = session.query(Student)
+        if self._filter_class:
+            query = query.filter(Student.class_id == self._filter_class)
+        if self._filter_group:
+            query = query.filter(Student.group_id == self._filter_group)
+        if search:
+            like = f"%{search}%"
+            query = query.filter(
+                or_(Student.name.ilike(like), Student.user_id.ilike(like))
+            )
+        students = query.order_by(Student.name).all()
         rows = []
         for s in students:
-            if self._filter_class and s.class_id != self._filter_class:
-                continue
-            if self._filter_group and s.group_id != self._filter_group:
-                continue
             rows.append({
                 "id":    str(s.id),
                 "uid":   s.user_id,
@@ -232,11 +234,6 @@ class StudentsPage(QWidget):
 
         for r in rows:
             r["flag_data"] = get_student_subscription_flags(r["sid"])
-
-        if search:
-            rows = [r for r in rows
-                    if search in r["name"].lower()
-                    or search in r["uid"].lower()]
 
         if self._filter_flag != "all":
             rows = [r for r in rows
@@ -291,8 +288,13 @@ class StudentsPage(QWidget):
             "students_list.pdf", "PDF Files (*.pdf)"
         )
         if path:
-            centre = get_setting("centre_name", "Tuition Centre")
-            export_student_list_pdf(path, centre)
+            centre_name = get_setting(
+                "centre_name", "GURUKUL ACADEMY AND TRAINING CENTER"
+            )
+            centre_address = get_setting(
+                "centre_address", "Biratnagar-1, Bhatta Chowk"
+            )
+            export_student_list_pdf(path, centre_name, centre_address)
             QMessageBox.information(
                 self, "Exported", f"Student list saved:\n{path}"
             )

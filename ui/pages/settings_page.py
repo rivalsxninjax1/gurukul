@@ -4,6 +4,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from services.settings_service import get_all_settings, set_setting
+from services.auth_service import change_password
+from services.session_service import get_current_user
 from services.backup_service import backup_database, restore_database
 from ui.styles import (
     BTN_PRIMARY, BTN_SECONDARY, BTN_DANGER,
@@ -55,6 +57,8 @@ class SettingsPage(QWidget):
             ("Default Monthly Fee (Rs.)",
              "default_fee", "Default: 2000"),
         ]))
+
+        layout.addWidget(self._password_card())
 
         # Save button
         save_btn = QPushButton("Save All Settings")
@@ -119,6 +123,54 @@ class SettingsPage(QWidget):
 
         return card
 
+    def _password_card(self):
+        card = QFrame()
+        card.setStyleSheet(CARD_STYLE)
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setSpacing(12)
+
+        lbl = QLabel("PASSWORD & SECURITY")
+        lbl.setStyleSheet(SECTION_LABEL_STYLE)
+        layout.addWidget(lbl)
+
+        desc = QLabel(
+            "Update the current user's password. Please enter the existing "
+            "password and confirm the new one."
+        )
+        desc.setWordWrap(True)
+        desc.setStyleSheet("font-size: 12px; color: #666666;")
+        layout.addWidget(desc)
+
+        def make_pw_input(placeholder):
+            inp = QLineEdit()
+            inp.setPlaceholderText(placeholder)
+            inp.setEchoMode(QLineEdit.Password)
+            inp.setStyleSheet(INPUT_STYLE)
+            inp.setFixedHeight(36)
+            return inp
+
+        self._old_pw_input = make_pw_input("Old password")
+        self._new_pw_input = make_pw_input("New password")
+        self._confirm_pw_input = make_pw_input("Confirm new password")
+
+        for text, widget in [
+            ("Old Password", self._old_pw_input),
+            ("New Password", self._new_pw_input),
+            ("Confirm Password", self._confirm_pw_input),
+        ]:
+            lbl_field = QLabel(text)
+            lbl_field.setStyleSheet(FORM_LABEL_STYLE)
+            layout.addWidget(lbl_field)
+            layout.addWidget(widget)
+
+        btn = QPushButton("Update Password")
+        btn.setStyleSheet(BTN_SECONDARY)
+        btn.setFixedHeight(38)
+        btn.clicked.connect(self._change_password)
+        layout.addWidget(btn)
+        return card
+
     def _load_settings(self):
         self._field_refs = getattr(self, "_field_refs", {})
         settings = get_all_settings()
@@ -154,3 +206,28 @@ class SettingsPage(QWidget):
                                             "Database restored. Please restart the app.")
                 else:
                     QMessageBox.critical(self, "Failed", "Restore failed. Check logs.")
+
+    def _change_password(self):
+        old_pw = self._old_pw_input.text().strip()
+        new_pw = self._new_pw_input.text().strip()
+        confirm_pw = self._confirm_pw_input.text().strip()
+
+        if not old_pw or not new_pw or not confirm_pw:
+            QMessageBox.warning(self, "Validation",
+                                "All password fields are required.")
+            return
+        if new_pw != confirm_pw:
+            QMessageBox.warning(self, "Validation",
+                                "New password and confirmation do not match.")
+            self._confirm_pw_input.setFocus()
+            return
+
+        username = get_current_user() or "admin"
+        ok, message = change_password(username, old_pw, new_pw)
+        if ok:
+            QMessageBox.information(self, "Password Updated", message)
+            self._old_pw_input.clear()
+            self._new_pw_input.clear()
+            self._confirm_pw_input.clear()
+        else:
+            QMessageBox.warning(self, "Password Not Updated", message)

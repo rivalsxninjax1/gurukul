@@ -6,10 +6,11 @@ from PyQt5.QtWidgets import (
     QFileDialog, QSpinBox, QDoubleSpinBox, QSplitter,
     QCheckBox
 )
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
+from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtGui import QColor, QDesktopServices
 from database.connection import get_session
 from models.student import Student
+from models.class_group import Class, Group
 from models.subscription import StudentSubscription, SubscriptionPayment
 from services.subscription_service import (
     get_active_subscription,
@@ -35,7 +36,8 @@ from ui.styles import (
     LIST_STYLE,
 )
 from ui.event_bus import bus
-from ui.widgets import Toast
+from ui.widgets import Toast, FilterField
+from services.settings_service import get_setting
 
 
 PAY_STATUS_STYLE = {
@@ -50,6 +52,8 @@ class SubscriptionsPage(QWidget):
         super().__init__()
         self.setStyleSheet("background: #f5f5f5;")
         self.selected_student_id = None
+        self._filter_class_id    = None
+        self._filter_group_id    = None
         self._build_ui()
         self._load_students()
         bus.student_saved.connect(self._load_students)
@@ -93,8 +97,46 @@ class SubscriptionsPage(QWidget):
         self.student_search.setPlaceholderText("Search…")
         self.student_search.setStyleSheet(INPUT_STYLE)
         self.student_search.setFixedHeight(34)
-        self.student_search.textChanged.connect(self._filter_students)
+        self.student_search.textChanged.connect(self._apply_student_filters)
         layout.addWidget(self.student_search)
+
+        # Filters
+        filter_frame = QFrame()
+        filter_frame.setStyleSheet(
+            "background: #fafafa; border: 1px solid #eeeeee; border-radius: 8px;"
+        )
+        filter_layout = QHBoxLayout(filter_frame)
+        filter_layout.setContentsMargins(12, 8, 12, 8)
+        filter_layout.setSpacing(12)
+
+        session = get_session()
+        class_rows = session.query(Class).order_by(Class.name).all()
+        session.close()
+
+        self.class_filter = QComboBox()
+        self.class_filter.setStyleSheet(COMBO_STYLE)
+        self.class_filter.setFixedHeight(32)
+        self.class_filter.addItem("All Classes", None)
+        for c in class_rows:
+            self.class_filter.addItem(c.name, c.id)
+        self.class_filter.currentIndexChanged.connect(
+            self._on_class_filter_changed
+        )
+
+        self.group_filter = QComboBox()
+        self.group_filter.setStyleSheet(COMBO_STYLE)
+        self.group_filter.setFixedHeight(32)
+        self.group_filter.addItem("All Groups", None)
+        self.group_filter.currentIndexChanged.connect(
+            self._on_group_filter_changed
+        )
+
+        class_field = FilterField("Class", self.class_filter, width=150)
+        group_field = FilterField("Group", self.group_filter, width=150)
+        filter_layout.addWidget(class_field)
+        filter_layout.addWidget(group_field)
+        filter_layout.addStretch()
+        layout.addWidget(filter_frame)
 
         self.student_list = QListWidget()
         self.student_list.setStyleSheet(LIST_STYLE)
@@ -312,11 +354,17 @@ class SubscriptionsPage(QWidget):
     def _load_students(self):
         session = get_session()
         self._all_students = [
-            {"id": s.id, "name": s.name, "uid": s.user_id}
+            {
+                "id": s.id,
+                "name": s.name,
+                "uid": s.user_id,
+                "class_id": s.class_id,
+                "group_id": s.group_id,
+            }
             for s in session.query(Student).order_by(Student.name).all()
         ]
         session.close()
-        self._render_student_list(self._all_students)
+        self._apply_student_filters()
 
     def _render_student_list(self, students):
         prev_id = self.selected_student_id
@@ -328,14 +376,41 @@ class SubscriptionsPage(QWidget):
             if s["id"] == prev_id:
                 self.student_list.setCurrentItem(item)
 
-    def _filter_students(self):
-        q = self.student_search.text().strip().lower()
-        filtered = (
-            [s for s in self._all_students
-             if q in s["name"].lower() or q in s["uid"].lower()]
-            if q else self._all_students
-        )
+    def _apply_student_filters(self):
+        term = self.student_search.text().strip().lower()
+        filtered = []
+        for stu in self._all_students:
+            if self._filter_class_id and stu["class_id"] != self._filter_class_id:
+                continue
+            if self._filter_group_id and stu["group_id"] != self._filter_group_id:
+                continue
+            if term and term not in stu["name"].lower() and term not in stu["uid"].lower():
+                continue
+            filtered.append(stu)
         self._render_student_list(filtered)
+
+    def _on_class_filter_changed(self):
+        self._filter_class_id = self.class_filter.currentData()
+        self.group_filter.blockSignals(True)
+        self.group_filter.clear()
+        self.group_filter.addItem("All Groups", None)
+        if self._filter_class_id:
+            session = get_session()
+            groups = session.query(Group).filter_by(
+                class_id=self._filter_class_id
+            ).order_by(Group.name).all()
+            session.close()
+            for grp in groups:
+                self.group_filter.addItem(grp.name, grp.id)
+        else:
+            session = None
+        self.group_filter.blockSignals(False)
+        self._filter_group_id = None
+        self._apply_student_filters()
+
+    def _on_group_filter_changed(self):
+        self._filter_group_id = self.group_filter.currentData()
+        self._apply_student_filters()
 
     def _on_student_selected(self):
         item = self.student_list.currentItem()
@@ -411,7 +486,7 @@ class SubscriptionsPage(QWidget):
                 item.setForeground(Qt.black)
                 self.pay_table.setItem(r, c, item)
 
-            rcpt_btn = QPushButton("PDF")
+            rcpt_btn = QPushButton("🧾  Print / PDF")
             rcpt_btn.setStyleSheet(BTN_SECONDARY)
 
       
@@ -538,15 +613,6 @@ class SubscriptionsPage(QWidget):
             self.toast.success("Subscription renewed.")
             self._refresh_detail()
             bus.payment_added.emit()
-
-    def _get_receipt(self, payment_id):
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Save Receipt", f"receipt_{payment_id}.pdf",
-            "PDF Files (*.pdf)"
-        )
-        if path:
-            generate_payment_receipt(payment_id, path)
-            QMessageBox.information(self, "Saved", f"Receipt saved:\n{path}")
 
 
 # ── Add Payment Dialog ────────────────────────────────────────────────────────
@@ -842,15 +908,6 @@ class ReceiptOptionsDialog(QDialog):
         self._build_ui()
 
     def _build_ui(self):
-        from services.print_service import (
-            get_receipt_html, print_html,
-            print_receipt_compact, html_to_pdf
-        )
-        self._get_receipt_html  = get_receipt_html
-        self._print_html        = print_html
-        self._print_compact     = print_receipt_compact
-        self._html_to_pdf       = html_to_pdf
-
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
@@ -916,9 +973,48 @@ class ReceiptOptionsDialog(QDialog):
         root.addWidget(footer)
 
     def _do_print(self):
-        html = self._get_receipt_html(self.payment_id)
-        self._print_compact(html, parent=self)
-        self.accept()
+        import tempfile
+        from ui.styles import apply_msgbox_style
+
+        centre_name = get_setting(
+            "centre_name", "GURUKUL ACADEMY AND TRAINING CENTER"
+        )
+        centre_address = get_setting(
+            "centre_address", "Biratnagar-1, Bhatta Chowk"
+        )
+
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        tmp_path = tmp.name
+        tmp.close()
+        mb = QMessageBox(self)
+        try:
+            generate_payment_receipt(
+                self.payment_id, tmp_path,
+                centre_name=centre_name,
+                centre_address=centre_address,
+            )
+        except Exception as exc:
+            mb.setWindowTitle("Error")
+            mb.setText(f"Failed to generate receipt PDF:\n{exc}")
+            apply_msgbox_style(mb)
+            mb.exec_()
+            return
+
+        opened = self._open_pdf(tmp_path)
+        if opened:
+            mb.setWindowTitle("Receipt Ready")
+            mb.setText("Receipt PDF opened in your default viewer.\nPlease print it from there.")
+            apply_msgbox_style(mb)
+            mb.exec_()
+            self.accept()
+        else:
+            mb.setWindowTitle("Viewer Unavailable")
+            mb.setText(
+                "Couldn't open the receipt PDF automatically.\n"
+                "Please use the Download PDF option instead."
+            )
+            apply_msgbox_style(mb)
+            mb.exec_()
 
     def _do_download(self):
         path, _ = QFileDialog.getSaveFileName(
@@ -927,17 +1023,32 @@ class ReceiptOptionsDialog(QDialog):
             "PDF Files (*.pdf)"
         )
         if path:
-            html = self._get_receipt_html(self.payment_id)
-            ok   = self._html_to_pdf(html, path)
             mb   = QMessageBox(self)
-            mb.setWindowTitle("Saved" if ok else "Error")
-            mb.setText(
-                f"Receipt saved:\n{path}" if ok
-                else "Failed to save PDF."
+            centre_name = get_setting(
+                "centre_name", "GURUKUL ACADEMY AND TRAINING CENTER"
             )
+            centre_address = get_setting(
+                "centre_address", "Biratnagar-1, Bhatta Chowk"
+            )
+            try:
+                generate_payment_receipt(
+                    self.payment_id, path,
+                    centre_name=centre_name,
+                    centre_address=centre_address,
+                )
+            except Exception as exc:
+                mb.setWindowTitle("Error")
+                mb.setText(f"Failed to save PDF:\n{exc}")
+            else:
+                mb.setWindowTitle("Saved")
+                mb.setText(f"Receipt saved:\n{path}")
             from ui.styles import apply_msgbox_style
             apply_msgbox_style(mb)
             mb.exec_()
         self.accept()
+
+    def _open_pdf(self, pdf_path: str) -> bool:
+        url = QUrl.fromLocalFile(pdf_path)
+        return QDesktopServices.openUrl(url)
                 #end of replaced part 
            

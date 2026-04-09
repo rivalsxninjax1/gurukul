@@ -6,6 +6,10 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QColor
 import pandas as pd
+import math
+import re
+from datetime import datetime as dt_type, time as time_type
+
 from services.attendance_service import import_attendance_excel
 from database.connection import get_session
 from models.attendance import Attendance, TeacherAttendance
@@ -17,10 +21,109 @@ from ui.styles import (
     DIALOG_STYLE, FORM_LABEL_STYLE, PAGE_TITLE_STYLE,
     CARD_STYLE, SECTION_LABEL_STYLE, TAB_STYLE,
     STATUS_PRESENT, STATUS_INCOMPLETE, STATUS_ABSENT,
-    STATUS_PRESENT_BG, STATUS_INCOMPLETE_BG, STATUS_ABSENT_BG
+    STATUS_PRESENT_BG, STATUS_INCOMPLETE_BG, STATUS_ABSENT_BG,
 )
 from ui.event_bus import bus
-from ui.widgets import LoadingOverlay, Toast
+from ui.widgets import LoadingOverlay, Toast, FilterField
+
+
+_DUP_DATE_RE = re.compile(r"^([0-9]{4}[-/][0-9]{2}[-/][0-9]{2}) +\1\b(.*)$")
+
+
+def _normalize_ts_text(value) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip()
+    if text in ("", "nan", "NaT", "None"):
+        return ""
+    text = text.replace("\u00a0", " ")
+    text = " ".join(text.split())
+    match = _DUP_DATE_RE.match(text)
+    if match:
+        suffix = match.group(2).strip()
+        return f"{match.group(1)} {suffix}" if suffix else match.group(1)
+    return text
+
+
+def _clean_date_value(val) -> str:
+    if val is None:
+        return ""
+    if isinstance(val, dt_type):
+        return val.date().isoformat()
+    if hasattr(val, "date"):
+        try:
+            return val.date().isoformat()
+        except Exception:
+            pass
+    if isinstance(val, (int, float)):
+        try:
+            if math.isnan(val):
+                return ""
+        except TypeError:
+            pass
+        converted = pd.to_datetime(
+            val, unit="D", origin="1899-12-30", errors="coerce"
+        )
+        if not pd.isna(converted):
+            return converted.date().isoformat()
+    text = str(val).strip()
+    if text in ("", "nan", "NaT", "None"):
+        return ""
+    parsed = pd.to_datetime(text, errors="coerce")
+    if not pd.isna(parsed):
+        return parsed.date().isoformat()
+    for sep in ("T", " "):
+        if sep in text:
+            return text.split(sep)[0]
+    return text
+
+
+def _clean_time_value(val) -> str:
+    if val is None:
+        return ""
+    if isinstance(val, time_type):
+        return val.strftime("%H:%M:%S")
+    if isinstance(val, dt_type):
+        return val.time().strftime("%H:%M:%S")
+    if isinstance(val, (int, float)):
+        try:
+            if math.isnan(val):
+                return ""
+        except TypeError:
+            pass
+        converted = pd.to_datetime(
+            val, unit="D", origin="1899-12-30", errors="coerce"
+        )
+        if not pd.isna(converted):
+            return converted.time().strftime("%H:%M:%S")
+    text = str(val).strip()
+    if text in ("", "nan", "NaT", "None"):
+        return ""
+    parsed = pd.to_datetime(text, errors="coerce")
+    if not pd.isna(parsed):
+        return parsed.time().strftime("%H:%M:%S")
+    for sep in ("T", " "):
+        if sep in text:
+            text = text.split(sep)[-1]
+            break
+    if text.count(":") == 1:
+        text = f"{text}:00"
+    return text
+
+
+def _parse_ts_value(text: str):
+    clean = _normalize_ts_text(text)
+    if not clean:
+        return None
+    parsed = pd.to_datetime(clean, errors="coerce")
+    if pd.isna(parsed):
+        return None
+    if hasattr(parsed, "tz_localize"):
+        try:
+            parsed = parsed.tz_localize(None)
+        except TypeError:
+            parsed = parsed.tz_convert(None)
+    return parsed
 
 
 class ImportWorker(QThread):
@@ -51,7 +154,6 @@ class AttendancePage(QWidget):
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(16)
 
-        # Title
         title_row = QHBoxLayout()
         title = QLabel("Attendance")
         title.setStyleSheet(PAGE_TITLE_STYLE)
@@ -67,38 +169,24 @@ class AttendancePage(QWidget):
         self.toast = Toast()
         layout.addWidget(self.toast)
 
-        # Filter card
         filter_card = QFrame()
         filter_card.setStyleSheet(CARD_STYLE)
         fl = QHBoxLayout(filter_card)
         fl.setContentsMargins(16, 12, 16, 12)
-        fl.setSpacing(12)
+        fl.setSpacing(16)
 
-        def lbl(t):
-            l = QLabel(t)
-            l.setStyleSheet(
-                "font-size: 12px; font-weight: bold; color: #333333;"
-                "background: transparent; border: none;"
-            )
-            return l
-
-        # BS date filter — defaults to today
         self.date_filter = BSDateEdit()
         self.date_filter.set_today()
-        self.date_filter.setMinimumWidth(200)   
         self.date_filter.dateChanged.connect(
             lambda _: self.refresh_tables()
         )
 
-        # Class filter
         session = get_session()
         classes = [(c.id, c.name) for c in session.query(Class).all()]
         session.close()
 
         self.class_filter = QComboBox()
         self.class_filter.setStyleSheet(COMBO_STYLE)
-        self.class_filter.setFixedHeight(36)
-        self.class_filter.setFixedWidth(150)
         self.class_filter.addItem("All Classes", None)
         for cid, cname in classes:
             self.class_filter.addItem(cname, cid)
@@ -109,10 +197,12 @@ class AttendancePage(QWidget):
 
         self.group_filter = QComboBox()
         self.group_filter.setStyleSheet(COMBO_STYLE)
-        self.group_filter.setFixedHeight(36)
-        self.group_filter.setFixedWidth(150)
         self.group_filter.addItem("All Groups", None)
         self.group_filter.currentIndexChanged.connect(self.refresh_tables)
+
+        date_field  = FilterField("Date (BS)", self.date_filter, width=230)
+        class_field = FilterField("Class",     self.class_filter, width=170)
+        group_field = FilterField("Group",     self.group_filter, width=170)
 
         self.badge_present    = self._badge(
             "Present: 0", STATUS_PRESENT, STATUS_PRESENT_BG)
@@ -125,13 +215,10 @@ class AttendancePage(QWidget):
         import_btn.setStyleSheet(BTN_PRIMARY)
         import_btn.clicked.connect(self.open_import_dialog)
 
-        fl.addWidget(lbl("Date (BS):"))
-        fl.addWidget(self.date_filter, 1)  ######### changed here #########
-        fl.addWidget(lbl("Class:"))
-        fl.addWidget(self.class_filter)
-        fl.addWidget(lbl("Group:"))
-        fl.addWidget(self.group_filter)        
-        fl.addSpacing(8)
+        fl.addWidget(date_field)
+        fl.addWidget(class_field)
+        fl.addWidget(group_field)
+        fl.addSpacing(12)
         fl.addWidget(self.badge_present)
         fl.addWidget(self.badge_incomplete)
         fl.addWidget(self.badge_absent)
@@ -139,7 +226,6 @@ class AttendancePage(QWidget):
         fl.addWidget(import_btn)
         layout.addWidget(filter_card)
 
-        # Tabs
         self.tabs = QTabWidget()
         self.tabs.setStyleSheet(TAB_STYLE)
         self.tabs.addTab(self._build_student_tab(), "Student Attendance")
@@ -317,8 +403,6 @@ class AttendancePage(QWidget):
                 self.teacher_table.setItem(row, col, item)
             self.teacher_table.setRowHeight(row, 40)
 
-    # ── Import flow ───────────────────────────────────────────────────────────
-
     def open_import_dialog(self):
         filepath, _ = QFileDialog.getOpenFileName(
             self, "Select Attendance Excel", "",
@@ -385,8 +469,6 @@ class AttendancePage(QWidget):
         self.overlay.resize(self.size())
 
 
-# ── Column map dialog ─────────────────────────────────────────────────────────
-
 class ColumnMapDialog(QDialog):
     def __init__(self, columns, parent=None):
         super().__init__(parent)
@@ -399,7 +481,6 @@ class ColumnMapDialog(QDialog):
         self._build_ui()
 
     def _build_ui(self):
-        from PyQt5.QtWidgets import QScrollArea
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
@@ -419,7 +500,8 @@ class ColumnMapDialog(QDialog):
 
         info = QLabel(
             "Format 1:  user_id + timestamp (single combined column)\n"
-            "Format 2:  user_id + date + time (two separate columns)\n\n"
+            "Format 2:  user_id + date + time (two separate columns)\n"
+            "Format 3:  user_id + date + entry time (+ optional exit time)\n\n"
             "IDs starting with 'T' → Teacher attendance.\n"
             "Timestamps are in AD — system displays them in BS."
         )
@@ -438,7 +520,7 @@ class ColumnMapDialog(QDialog):
             c.setFixedHeight(36)
             return c
 
-        def row(label_text, widget):
+        def add_row(label_text, widget):
             lbl = QLabel(label_text)
             lbl.setStyleSheet(FORM_LABEL_STYLE)
             fl.addWidget(lbl)
@@ -455,6 +537,12 @@ class ColumnMapDialog(QDialog):
         self.time_combo = mk_combo()
         self.time_combo.addItem(NA)
         self.time_combo.addItems(self.columns)
+        self.entry_combo = mk_combo()
+        self.entry_combo.addItem(NA)
+        self.entry_combo.addItems(self.columns)
+        self.exit_combo = mk_combo()
+        self.exit_combo.addItem(NA)
+        self.exit_combo.addItems(self.columns)
 
         for i, col in enumerate(self.columns):
             cl = col.lower().strip()
@@ -464,13 +552,19 @@ class ColumnMapDialog(QDialog):
                 self.ts_combo.setCurrentIndex(i + 1)
             if cl == "date":
                 self.date_combo.setCurrentIndex(i + 1)
-            if cl in ("time", "clock_time"):
+            if cl in ("time", "clock_time", "punch_time"):
                 self.time_combo.setCurrentIndex(i + 1)
+            if cl in ("entry_time", "in_time", "checkin", "check_in", "time_in"):
+                self.entry_combo.setCurrentIndex(i + 1)
+            if cl in ("exit_time", "out_time", "checkout", "check_out", "time_out"):
+                self.exit_combo.setCurrentIndex(i + 1)
 
-        row("User ID column  *",            self.uid_combo)
-        row("Timestamp column (Format 1)",  self.ts_combo)
-        row("Date column (Format 2)",       self.date_combo)
-        row("Time column (Format 2)",       self.time_combo)
+        add_row("User ID column  *",            self.uid_combo)
+        add_row("Timestamp column (Format 1)",  self.ts_combo)
+        add_row("Date column (Format 2)",       self.date_combo)
+        add_row("Time column (Format 2)",       self.time_combo)
+        add_row("Entry Time column (Format 3)", self.entry_combo)
+        add_row("Exit Time column (Format 3)",  self.exit_combo)
         root.addWidget(inner)
 
         footer = QFrame()
@@ -497,16 +591,21 @@ class ColumnMapDialog(QDialog):
         ts  = self.ts_combo.currentText()
         dt  = self.date_combo.currentText()
         tm  = self.time_combo.currentText()
+        ent = self.entry_combo.currentText()
+        ext = self.exit_combo.currentText()
 
         if ts != NA:
             self._mapping = {"user_id": uid, "timestamp": ts}
         elif dt != NA and tm != NA:
             self._mapping = {"user_id": uid, "date": dt, "time": tm}
+        elif dt != NA and ent != NA:
+            self._mapping = {"user_id": uid, "date": dt, "entry_time": ent}
+            if ext != NA:
+                self._mapping["exit_time"] = ext
         else:
             QMessageBox.warning(
                 self, "Incomplete Mapping",
-                "Select either a Timestamp column,\n"
-                "OR both a Date AND a Time column."
+                "Select a Timestamp column, OR Date+Time, OR Date+Entry Time."
             )
             return
         self.accept()
@@ -514,8 +613,6 @@ class ColumnMapDialog(QDialog):
     def get_mapping(self):
         return self._mapping
 
-
-# ── Preview dialog ────────────────────────────────────────────────────────────
 
 class PreviewDialog(QDialog):
     def __init__(self, filepath, col_map, parent=None):
@@ -545,36 +642,86 @@ class PreviewDialog(QDialog):
         df = df.dropna(subset=["user_id"])
         df["user_id"] = df["user_id"].astype(str).str.strip()
 
-        if "timestamp" in col_map and col_map["timestamp"] in df.columns:
-            df = df.rename(columns={col_map["timestamp"]: "ts_raw"})
+        records = []
+
+        def append_record(uid, raw_val):
+            norm = _normalize_ts_text(raw_val)
+            if norm:
+                records.append({
+                    "user_id": uid,
+                    "ts_raw": norm,
+                    "raw_value": str(raw_val).strip() if raw_val is not None else "",
+                })
+
+        if "timestamp" in col_map:
+            ts_col = col_map["timestamp"]
+            if ts_col not in df.columns:
+                self._errors.append(f"Timestamp column '{ts_col}' not found.")
+                return
+            for _, row in df.iterrows():
+                append_record(row["user_id"], row[ts_col])
         elif "date" in col_map and "time" in col_map:
             dc, tc = col_map["date"], col_map["time"]
             if dc not in df.columns or tc not in df.columns:
                 self._errors.append("Date or Time column not found.")
                 return
-            df["ts_raw"] = df[dc].astype(str) + " " + df[tc].astype(str)
+            for _, row in df.iterrows():
+                d = _clean_date_value(row[dc])
+                t = _clean_time_value(row[tc]) or "00:00:00"
+                if not d:
+                    continue
+                append_record(row["user_id"], f"{d} {t}")
+        elif "date" in col_map and "entry_time" in col_map:
+            dc = col_map["date"]
+            entry_col = col_map["entry_time"]
+            exit_col = col_map.get("exit_time")
+            missing = [
+                name for name in [dc, entry_col, exit_col]
+                if name and name not in df.columns
+            ]
+            if missing:
+                self._errors.append(
+                    f"Column(s) not found: {', '.join(missing)}"
+                )
+                return
+            for _, row in df.iterrows():
+                d = _clean_date_value(row[dc])
+                if not d:
+                    continue
+                entry_val = _clean_time_value(row[entry_col])
+                exit_val  = _clean_time_value(row[exit_col]) if exit_col else None
+                added = False
+                if entry_val:
+                    append_record(row["user_id"], f"{d} {entry_val}")
+                    added = True
+                if exit_val:
+                    append_record(row["user_id"], f"{d} {exit_val}")
+                    added = True
+                if not added:
+                    continue
         else:
             self._errors.append("Cannot determine timestamp columns.")
             return
 
-        df["timestamp"] = pd.to_datetime(df["ts_raw"], errors="coerce")
-        for _, r in df[df["timestamp"].isna()].iterrows():
-            self._errors.append(
-                f"Invalid datetime for {r['user_id']}: '{r['ts_raw']}'"
-            )
-        df = df.dropna(subset=["timestamp"])
+        if not records:
+            self._errors.append("No usable rows detected — please review the mapping.")
+            return
 
-        for _, r in df.head(200).iterrows():
-            uid    = str(r["user_id"])
-            ts_ad  = r["timestamp"]
-            # Convert AD timestamp date → BS for display
+        for rec in records[:200]:
+            ts_ad = _parse_ts_value(rec["ts_raw"])
+            if ts_ad is None:
+                self._errors.append(
+                    f"Invalid datetime for {rec['user_id']}: "
+                    f"'{rec['raw_value'] or rec['ts_raw']}'"
+                )
+                continue
             ts_bs_date = bs_str(ts_ad.date()) if hasattr(ts_ad, "date") else "—"
             ts_time    = ts_ad.strftime("%H:%M:%S") if hasattr(ts_ad, "strftime") else "—"
             self._rows.append({
-                "user_id":  uid,
+                "user_id":  rec["user_id"],
                 "date_bs":  ts_bs_date,
                 "time":     ts_time,
-                "type": "Teacher" if uid.upper().startswith("T")
+                "type": "Teacher" if rec["user_id"].upper().startswith("T")
                         else "Student",
             })
 

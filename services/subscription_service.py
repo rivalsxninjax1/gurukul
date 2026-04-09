@@ -4,11 +4,15 @@ from database.connection import get_session
 from models.subscription import StudentSubscription, SubscriptionPayment
 from models.student import Student
 from utils.bs_converter import days_remaining_label, bs_str
+from services.attendance_analytics_service import (
+    get_two_month_analytics, bs_month_name
+)
+from services.exam_service import get_results_for_student
 import logging
 
 logger = logging.getLogger(__name__)
 
-CENTRE_NAME = "Gurukul Tuition Centre"
+CENTRE_NAME = "GURUKUL ACADEMY AND TUITION CENTRE"
 
 
 def create_subscription(student_id: int, start_date: date,
@@ -264,12 +268,29 @@ def generate_payment_receipt(payment_id: int, output_path: str,
     pdate    = bs_str(p.payment_date)
     session.close()
 
+    attendance_stats = None
+    latest_exam = None
+    if s:
+        attendance = get_two_month_analytics(s.id, s.join_date)
+        if attendance:
+            for key in ("current", "previous"):
+                stats = attendance.get(key)
+                if stats and stats.get("bs_month"):
+                    attendance_stats = stats
+                    break
+        exams = [
+            e for e in get_results_for_student(s.id, s.join_date)
+            if e["has_results"]
+        ]
+        if exams:
+            latest_exam = exams[0]
+
     W, H = A6
     c = pdf_canvas.Canvas(output_path, pagesize=A6)
 
     # ── Header: Logo + Institution name ──────────────────────────────────────
-    logo_drawn = False
     logo_path  = get_logo_path()
+    name_y     = H - 28
     if os.path.isfile(logo_path):
         try:
             logo_h = 36
@@ -281,21 +302,20 @@ def generate_payment_receipt(payment_id: int, output_path: str,
             ratio  = min(logo_w / iw, logo_h / ih)
             draw_w = iw * ratio
             draw_h = ih * ratio
+            img_x = (W - draw_w) / 2
+            img_y = H - 16 - draw_h
             c.drawImage(
                 logo_path,
-                (W / 2) - (draw_w / 2) - 30,
-                H - 10 - draw_h,
+                img_x,
+                img_y,
                 width  = draw_w,
                 height = draw_h,
                 mask   = "auto",
                 preserveAspectRatio = True,
             )
-            logo_drawn = True
-            name_y = H - 14 - draw_h
+            name_y = img_y - 10
         except Exception:
-            name_y = H - 28
-    else:
-        name_y = H - 28
+            pass
 
     c.setFont("Helvetica-Bold", 11)
     c.setFillColorRGB(0.1, 0.1, 0.1)
@@ -348,6 +368,27 @@ def generate_payment_receipt(payment_id: int, output_path: str,
     line_kv("Method", p.payment_method)
     if p.note:
         line_kv("Note", p.note)
+
+    if attendance_stats:
+        section_title(
+            f"Attendance · {bs_month_name(attendance_stats['bs_month'])}"
+            f" {attendance_stats.get('bs_year', '')}".strip()
+        )
+        for label, key in [
+            ("Working Days", "working_days"),
+            ("Present Days", "present"),
+            ("Absent Days", "absent"),
+        ]:
+            line_kv(label, attendance_stats.get(key, 0))
+
+    if latest_exam:
+        section_title(f"Last Exam · {latest_exam['exam']}")
+        subjects = latest_exam.get("subjects", [])
+        for subj in subjects[:3]:
+            marks = "—" if subj["marks"] is None else str(subj["marks"])
+            line_kv(subj["subject"], f"{marks} / {subj['full']}")
+        if len(subjects) > 3:
+            line_kv("More Subjects", "See profile for details")
 
     # Prominent amount
     y -= 6

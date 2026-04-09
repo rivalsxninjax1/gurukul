@@ -12,6 +12,18 @@ BTN_PRIMARY = """
     QPushButton:disabled { background: #cccccc; color: #888888; }
 """
 
+BTN_PRINT = """
+    QPushButton {
+        background: #2d4a7a; color: #ffffff;
+        padding: 7px 18px; border-radius: 5px;
+        font-size: 13px; font-weight: bold;
+        border: none; min-height: 32px;
+    }
+    QPushButton:hover   { background: #3a5fa0; }
+    QPushButton:pressed { background: #1e3560; }
+    QPushButton:disabled { background: #9bb3da; color: #e7ecf7; }
+"""
+
 BTN_DANGER = """
     QPushButton {
         background: #b02020; color: #ffffff;
@@ -277,6 +289,10 @@ SECTION_LABEL_STYLE = (
 )
 FORM_LABEL_STYLE    = (
     "font-size: 13px; color: #333333; font-weight: bold;"
+    "background: transparent; border: none;"
+)
+FILTER_LABEL_STYLE  = (
+    "font-size: 12px; font-weight: bold; color: #444444;"
     "background: transparent; border: none;"
 )
 HINT_LABEL_STYLE    = (

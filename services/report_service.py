@@ -76,14 +76,40 @@ def export_attendance_pdf(rows: list, filepath: str, start_date, end_date):
 
 # ── Revenue report ────────────────────────────────────────────────────────────
 
-def get_revenue_report() -> list:
+def get_revenue_report(start_date: date_type | None = None,
+                       end_date: date_type | None = None) -> list:
     session  = get_session()
     students = session.query(Student).all()
     result   = []
     for s in students:
-        total_fee  = sum(sub.total_fee for sub in s.subscriptions)
-        total_paid = sum(p.amount_paid for p in s.payments)
-        balance    = total_fee - total_paid
+        if start_date or end_date:
+            subs = [sub for sub in s.subscriptions
+                    if not (end_date and sub.start_date > end_date)
+                    and not (start_date and sub.end_date < start_date)]
+        else:
+            subs = list(s.subscriptions)
+        total_fee = sum(sub.total_fee for sub in subs)
+
+        payments = [
+            p for p in s.payments
+            if (not start_date or p.payment_date >= start_date)
+            and (not end_date or p.payment_date <= end_date)
+        ]
+        total_paid = sum(p.amount_paid for p in payments)
+
+        if not subs and not payments:
+            continue
+
+        balance = max(total_fee - total_paid, 0.0)
+        if total_fee > 0:
+            status = (
+                "Paid"    if total_paid >= total_fee else
+                "Partial" if total_paid > 0 else
+                "Unpaid"
+            )
+        else:
+            status = "Paid" if total_paid > 0 else "Unpaid"
+
         result.append({
             "user_id":   s.user_id,
             "name":      s.name,
@@ -91,29 +117,49 @@ def get_revenue_report() -> list:
             "total_fee": total_fee,
             "paid":      total_paid,
             "balance":   balance,
-            "status": (
-                "Paid"    if total_fee > 0 and total_paid >= total_fee else
-                "Partial" if total_paid > 0 else
-                "Unpaid"
-            ),
+            "status":    status,
         })
     session.close()
+    result.sort(key=lambda r: r["name"])
     return result
 
 
-def export_revenue_excel(rows: list, filepath: str):
-    pd.DataFrame(rows).to_excel(filepath, index=False)
+def export_revenue_excel(rows: list, filepath: str,
+                         start_bs: str | None = None,
+                         end_bs: str | None = None):
+    data = list(rows)
+    if start_bs or end_bs:
+        note = f"Period: {start_bs or '—'} to {end_bs or '—'}"
+        meta = {
+            "user_id": note,
+            "name": "",
+            "class": "",
+            "total_fee": "",
+            "paid": "",
+            "balance": "",
+            "status": "",
+        }
+        data = [meta] + data
+    pd.DataFrame(data).to_excel(filepath, index=False)
 
 
-def export_revenue_pdf(rows: list, filepath: str):
+def export_revenue_pdf(rows: list, filepath: str,
+                       start_bs: str | None = None,
+                       end_bs: str | None = None):
     c = canvas.Canvas(filepath, pagesize=A4)
     w, h = A4
     c.setFont("Helvetica-Bold", 14)
     c.drawString(50, h - 50, "Revenue Report")
-    c.line(50, h - 62, w - 50, h - 62)
+    if start_bs or end_bs:
+        c.setFont("Helvetica", 10)
+        c.drawString(
+            50, h - 66,
+            f"Period: {start_bs or '—'}  to  {end_bs or '—'}"
+        )
+    c.line(50, h - 72, w - 50, h - 72)
     headers = ["User ID", "Name", "Class", "Total Fee", "Paid", "Balance", "Status"]
     col_x   = [50, 110, 230, 310, 380, 440, 505]
-    y = h - 80
+    y = h - 90
     c.setFont("Helvetica-Bold", 9)
     for i, hdr in enumerate(headers):
         c.drawString(col_x[i], y, hdr)
