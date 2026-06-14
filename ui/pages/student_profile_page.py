@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QFrame,
-    QScrollArea, QFileDialog, QMessageBox, QDialog,
+    QScrollArea, QFileDialog, QMessageBox, QDialog, QLineEdit,
     QVBoxLayout as QVL
 )
 from PyQt5.QtCore import Qt, QUrl
@@ -27,9 +27,11 @@ from ui.styles import (
     STATUS_PRESENT, STATUS_PRESENT_BG,
     STATUS_ABSENT, STATUS_ABSENT_BG,
     STATUS_INCOMPLETE, STATUS_INCOMPLETE_BG,
+    DIALOG_STYLE, FORM_LABEL_STYLE, INPUT_STYLE,
     apply_msgbox_style,
 )
 from ui.event_bus import bus
+from ui.widgets import Toast
 
 CENTRE_NAME    = "GURUKUL ACADEMY AND TRAINING CENTER"
 CENTRE_ADDRESS = "Biratnagar-1, Bhatta Chowk"
@@ -163,6 +165,9 @@ class StudentProfilePage(QWidget):
         self._name_label.setStyleSheet(PAGE_TITLE_STYLE)
         self._layout.addWidget(self._name_label)
 
+        self.toast = Toast()
+        self._layout.addWidget(self.toast)
+
         # Outstanding balance warning
         self._outstanding_warning = QLabel("")
         self._outstanding_warning.setStyleSheet(
@@ -273,9 +278,21 @@ class StudentProfilePage(QWidget):
         layout = QVBoxLayout(card)
         layout.setContentsMargins(20, 16, 20, 16)
         layout.setSpacing(10)
+        hdr_row = QHBoxLayout()
         hdr = QLabel("Personal Details")
         hdr.setStyleSheet(PANEL_TITLE_STYLE)
-        layout.addWidget(hdr)
+        self.edit_details_btn = QPushButton("Edit Details")
+        self.edit_details_btn.setStyleSheet(BTN_SECONDARY)
+        self.edit_details_btn.clicked.connect(self._edit_details)
+        self.edit_id_btn = QPushButton("Edit Student ID")
+        self.edit_id_btn.setStyleSheet(BTN_SECONDARY)
+        self.edit_id_btn.clicked.connect(self._edit_id)
+        hdr_row.addWidget(hdr)
+        hdr_row.addStretch()
+        hdr_row.addWidget(self.edit_details_btn)
+        hdr_row.addSpacing(6)
+        hdr_row.addWidget(self.edit_id_btn)
+        layout.addLayout(hdr_row)
         sep = QFrame(); sep.setFrameShape(QFrame.HLine)
         sep.setFixedHeight(1); sep.setStyleSheet("background: #eeeeee; border: none;")
         layout.addWidget(sep)
@@ -728,3 +745,101 @@ class StudentProfilePage(QWidget):
     def _open_pdf(self, pdf_path: str) -> bool:
         url = QUrl.fromLocalFile(pdf_path)
         return QDesktopServices.openUrl(url)
+
+    def _edit_details(self):
+        if not self._student_id:
+            return
+        from ui.pages.students_page import StudentDialog
+        dlg = StudentDialog(student_id=self._student_id, parent=self)
+        if dlg.exec_():
+            self.toast.success("Student details updated.")
+            self.load_student(self._student_id)
+            bus.student_saved.emit()
+
+    def _edit_id(self):
+        if not self._student_id:
+            return
+        session = get_session()
+        s = session.query(Student).get(self._student_id)
+        current_id = s.user_id if s else ""
+        session.close()
+
+        dlg = EditIDDialog("Edit Student ID", current_id, parent=self)
+        if dlg.exec_():
+            new_id = dlg.get_value()
+            if not new_id:
+                return
+            session = get_session()
+            dup = session.query(Student).filter(
+                Student.user_id == new_id,
+                Student.id      != self._student_id
+            ).first()
+            if dup:
+                mb = QMessageBox(self)
+                mb.setWindowTitle("Duplicate")
+                mb.setText(f"Student ID '{new_id}' is already taken.")
+                apply_msgbox_style(mb)
+                mb.exec_()
+                session.close()
+                return
+            s = session.query(Student).get(self._student_id)
+            if s:
+                s.user_id = new_id
+                session.commit()
+                self._info_vals["User ID"].setText(new_id)
+                self.toast.success("Student ID updated.")
+                bus.student_saved.emit()
+            session.close()
+
+
+class EditIDDialog(QDialog):
+    def __init__(self, title, current_value, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setFixedWidth(360)
+        self.setStyleSheet(DIALOG_STYLE)
+        self.setSizeGripEnabled(False)
+        self._build_ui(current_value)
+
+    def _build_ui(self, current_value):
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        inner = QFrame()
+        inner.setStyleSheet("QFrame { background: #ffffff; border: none; }")
+        fl = QVBoxLayout(inner)
+        fl.setContentsMargins(28, 28, 28, 20)
+        fl.setSpacing(12)
+
+        lbl = QLabel("New Student ID:")
+        lbl.setStyleSheet(FORM_LABEL_STYLE)
+        fl.addWidget(lbl)
+
+        self.input = QLineEdit(current_value)
+        self.input.setStyleSheet(INPUT_STYLE)
+        self.input.setFixedHeight(36)
+        self.input.returnPressed.connect(self.accept)
+        fl.addWidget(self.input)
+        root.addWidget(inner)
+
+        footer = QFrame()
+        footer.setStyleSheet(
+            "QFrame { background: #f5f5f5; border-top: 1px solid #e8e8e8; }"
+        )
+        br = QHBoxLayout(footer)
+        br.setContentsMargins(28, 14, 28, 14)
+        br.addStretch()
+        cancel = QPushButton("Cancel")
+        cancel.setStyleSheet(BTN_SECONDARY)
+        cancel.clicked.connect(self.reject)
+        save = QPushButton("Save")
+        save.setStyleSheet(BTN_PRIMARY)
+        save.clicked.connect(self.accept)
+        br.addWidget(cancel)
+        br.addSpacing(10)
+        br.addWidget(save)
+        root.addWidget(footer)
+
+    def get_value(self):
+        return self.input.text().strip()

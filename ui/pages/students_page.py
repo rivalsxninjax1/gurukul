@@ -11,7 +11,8 @@ from models.student import Student
 from models.class_group import Class, Group
 from sqlalchemy import or_
 from services.subscription_service import (
-    create_subscription, get_student_subscription_flags
+    create_subscription, get_student_subscription_flags,
+    get_active_subscription, update_subscription_fee
 )
 from services.id_service import generate_student_id
 from services.export_service import export_student_list_pdf
@@ -336,6 +337,8 @@ class StudentDialog(QDialog):
         super().__init__(parent)
         self.student_id       = student_id
         self.saved_student_id = None
+        self._active_sub_id   = None
+        self._original_fee    = None
         self.setWindowTitle(
             "Add Student" if not student_id else "Edit Student"
         )
@@ -468,6 +471,33 @@ class StudentDialog(QDialog):
 
             field("Duration",  self.duration_spin)
             field("Total Fee", self.fee_spin)
+        else:
+            sep = QFrame()
+            sep.setFrameShape(QFrame.HLine)
+            sep.setStyleSheet("background: #eeeeee; border: none;")
+            fl.addWidget(sep)
+
+            sub_lbl = QLabel("ACTIVE SUBSCRIPTION")
+            sub_lbl.setStyleSheet(SECTION_LABEL_STYLE)
+            fl.addWidget(sub_lbl)
+
+            self.active_fee_spin = QDoubleSpinBox()
+            self.active_fee_spin.setRange(0, 999999)
+            self.active_fee_spin.setValue(0)
+            self.active_fee_spin.setPrefix("Rs. ")
+            self.active_fee_spin.setDecimals(0)
+            self.active_fee_spin.setStyleSheet(SPINBOX_STYLE)
+            self.active_fee_spin.setFixedHeight(36)
+
+            field("Total Fee", self.active_fee_spin)
+
+            self.no_active_sub_note = QLabel("No active subscription to edit.")
+            self.no_active_sub_note.setStyleSheet(
+                "font-size: 12px; color: #999999;"
+                "background: transparent; border: none;"
+            )
+            self.no_active_sub_note.hide()
+            fl.addWidget(self.no_active_sub_note)
 
         scroll.setWidget(inner)
         root.addWidget(scroll)
@@ -537,6 +567,15 @@ class StudentDialog(QDialog):
             if idx >= 0:
                 self.group_combo.setCurrentIndex(idx)
 
+        active_sub = get_active_subscription(self.student_id)
+        if active_sub:
+            self._active_sub_id = active_sub["id"]
+            self._original_fee  = active_sub["total_fee"]
+            self.active_fee_spin.setValue(active_sub["total_fee"])
+        else:
+            self.active_fee_spin.setEnabled(False)
+            self.no_active_sub_note.show()
+
     def _save(self):
         name = self.name_input.text().strip()
         if not name:
@@ -602,4 +641,9 @@ class StudentDialog(QDialog):
                 duration_months = self.duration_spin.value(),
                 total_fee       = self.fee_spin.value(),
             )
+        else:
+            if self._active_sub_id is not None:
+                new_fee = self.active_fee_spin.value()
+                if new_fee != self._original_fee:
+                    update_subscription_fee(self._active_sub_id, new_fee)
         self.accept()
