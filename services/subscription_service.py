@@ -99,6 +99,28 @@ def update_subscription_fee(subscription_id: int, new_fee: float) -> bool:
     return True
 
 
+def update_subscription_dates(subscription_id: int,
+                               start_date: date,
+                               end_date: date) -> bool:
+    """Update the start_date and/or end_date of an existing subscription
+    in place (e.g. user-edited subscription period). Returns False if
+    not found."""
+    session = get_session()
+    sub = session.query(StudentSubscription).get(subscription_id)
+    if not sub:
+        session.close()
+        return False
+    sub.start_date = start_date
+    sub.end_date   = end_date
+    session.commit()
+    session.close()
+    logger.info(
+        f"Subscription {subscription_id}: dates updated to "
+        f"{start_date} → {end_date}"
+    )
+    return True
+
+
 def get_subscription_history(student_id: int) -> list:
     session = get_session()
     subs = session.query(StudentSubscription).filter_by(

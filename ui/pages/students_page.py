@@ -12,7 +12,8 @@ from models.class_group import Class, Group
 from sqlalchemy import or_
 from services.subscription_service import (
     create_subscription, get_student_subscription_flags,
-    get_active_subscription, update_subscription_fee
+    get_active_subscription, update_subscription_fee,
+    update_subscription_dates
 )
 from services.id_service import generate_student_id
 from services.export_service import export_student_list_pdf
@@ -339,6 +340,8 @@ class StudentDialog(QDialog):
         self.saved_student_id = None
         self._active_sub_id   = None
         self._original_fee    = None
+        self._original_start  = None
+        self._original_end    = None
         self.setWindowTitle(
             "Add Student" if not student_id else "Edit Student"
         )
@@ -491,6 +494,15 @@ class StudentDialog(QDialog):
 
             field("Total Fee", self.active_fee_spin)
 
+            self.active_start_input = BSDateEdit()
+            self.active_start_input.set_today()
+
+            self.active_end_input = BSDateEdit()
+            self.active_end_input.set_today()
+
+            field("Start Date (BS)", self.active_start_input)
+            field("End Date (BS)",   self.active_end_input)
+
             self.no_active_sub_note = QLabel("No active subscription to edit.")
             self.no_active_sub_note.setStyleSheet(
                 "font-size: 12px; color: #999999;"
@@ -569,11 +581,17 @@ class StudentDialog(QDialog):
 
         active_sub = get_active_subscription(self.student_id)
         if active_sub:
-            self._active_sub_id = active_sub["id"]
-            self._original_fee  = active_sub["total_fee"]
+            self._active_sub_id  = active_sub["id"]
+            self._original_fee   = active_sub["total_fee"]
+            self._original_start = active_sub["start_date"]
+            self._original_end   = active_sub["end_date"]
             self.active_fee_spin.setValue(active_sub["total_fee"])
+            self.active_start_input.set_from_ad(active_sub["start_date"])
+            self.active_end_input.set_from_ad(active_sub["end_date"])
         else:
             self.active_fee_spin.setEnabled(False)
+            self.active_start_input.setEnabled(False)
+            self.active_end_input.setEnabled(False)
             self.no_active_sub_note.show()
 
     def _save(self):
@@ -601,6 +619,25 @@ class StudentDialog(QDialog):
                 "Join Date (BS) is invalid. Please enter a valid BS date."
             )
             return
+
+        sub_start_ad = None
+        sub_end_ad   = None
+        if self._active_sub_id is not None:
+            sub_start_ad = self.active_start_input.get_ad_date()
+            sub_end_ad   = self.active_end_input.get_ad_date()
+            if not sub_start_ad or not sub_end_ad:
+                QMessageBox.warning(
+                    self, "Validation",
+                    "Subscription Start/End Date (BS) is invalid. "
+                    "Please enter valid BS dates."
+                )
+                return
+            if sub_end_ad < sub_start_ad:
+                QMessageBox.warning(
+                    self, "Validation",
+                    "Subscription End Date cannot be before Start Date."
+                )
+                return
 
         session = get_session()
         if self.student_id:
@@ -646,4 +683,9 @@ class StudentDialog(QDialog):
                 new_fee = self.active_fee_spin.value()
                 if new_fee != self._original_fee:
                     update_subscription_fee(self._active_sub_id, new_fee)
+                if (sub_start_ad != self._original_start
+                        or sub_end_ad != self._original_end):
+                    update_subscription_dates(
+                        self._active_sub_id, sub_start_ad, sub_end_ad
+                    )
         self.accept()
