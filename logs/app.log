@@ -4094,3 +4094,5 @@
 2026-04-09 22:22:14,504 [INFO] services.export_service: Student profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmplxk0xtkx.pdf
 2026-04-09 22:22:33,240 [INFO] services.export_service: Teacher profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpzsago41n.pdf
 2026-04-09 22:28:43,281 [INFO] services.export_service: Teacher profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpyy6y09ju.pdf
+2026-04-10 10:18:55,849 [INFO] services.export_service: Teacher profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpf65v7215.pdf
+2026-06-12 08:25:38,175 [INFO] services.export_service: Student profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmp9_my3vl3.pdf

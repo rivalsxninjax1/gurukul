@@ -1,3 +1,4 @@
+# gurukul.spec
 import sys
 import os
 
@@ -62,10 +63,10 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=False,          # No black console window
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,
+    icon=None,              # Set to 'assets/icon.ico' if you have one
 )
