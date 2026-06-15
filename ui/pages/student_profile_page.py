@@ -16,7 +16,7 @@ from services.attendance_analytics_service import (
     get_monthly_analytics, bs_month_name
 )
 from services.exam_service import get_results_for_student
-from services.export_service import export_student_profile_pdf
+from services.export_service import export_student_profile_image
 from services.attendance_query_service import get_student_attendance_history
 from services.settings_service import get_setting
 from utils.bs_converter import bs_str, ad_to_bs, today_bs_tuple
@@ -155,9 +155,9 @@ class StudentProfilePage(QWidget):
         top.addWidget(print_btn)
         top.addSpacing(8)
 
-        export_btn = QPushButton("⬇  Download PDF")
+        export_btn = QPushButton("⬇  Download Image")
         export_btn.setStyleSheet(BTN_PRIMARY)
-        export_btn.clicked.connect(self._export_pdf)
+        export_btn.clicked.connect(self._export_image)
         top.addWidget(export_btn)
         self._layout.addLayout(top)
 
@@ -669,25 +669,27 @@ class StudentProfilePage(QWidget):
     # ── Print & Export actions ────────────────────────────────────────────────
 
     def _print_profile(self):
-        """Generate PDF (same as download) and open it for printing."""
+        """Generate the profile image (same as download) and open it for printing."""
         if not self._student_id:
             return
         import tempfile
 
         centre_name, centre_address = self._centre_meta()
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
         tmp_path = tmp.name
         tmp.close()
 
         mb = QMessageBox(self)
         try:
-            export_student_profile_pdf(
+            ok = export_student_profile_image(
                 self._student_id, tmp_path,
                 centre_name, centre_address
             )
+            if not ok:
+                raise RuntimeError("Image conversion failed")
         except Exception as exc:
             mb.setWindowTitle("Error")
-            mb.setText(f"Failed to prepare PDF:\n{exc}")
+            mb.setText(f"Failed to prepare image:\n{exc}")
             apply_msgbox_style(mb)
             mb.exec_()
             return
@@ -695,37 +697,39 @@ class StudentProfilePage(QWidget):
         opened = self._open_pdf(tmp_path)
         if opened:
             mb.setWindowTitle("Profile Ready")
-            mb.setText("Profile PDF opened in your default viewer.\nPlease print it from there.")
+            mb.setText("Profile image opened in your default viewer.\nPlease print it from there.")
         else:
             mb.setWindowTitle("Viewer Unavailable")
-            mb.setText("Couldn't open the profile PDF automatically.\nPlease use Download PDF instead.")
+            mb.setText("Couldn't open the profile image automatically.\nPlease use Download Image instead.")
         apply_msgbox_style(mb)
         mb.exec_()
 
-    def _export_pdf(self):
-        """Save profile as PDF file."""
+    def _export_image(self):
+        """Save profile as a PNG image file."""
         if not self._student_id:
             return
         path, _ = QFileDialog.getSaveFileName(
-            self, "Download Profile PDF",
-            f"student_profile_{self._student_id}.pdf",
-            "PDF Files (*.pdf)"
+            self, "Download Profile Image",
+            f"student_profile_{self._student_id}.png",
+            "PNG Image (*.png)"
         )
         if path:
             centre_name = get_setting("centre_name", CENTRE_NAME)
             centre_address = get_setting("centre_address", CENTRE_ADDRESS)
             mb = QMessageBox(self)
             try:
-                export_student_profile_pdf(
+                ok = export_student_profile_image(
                     self._student_id, path,
                     centre_name, centre_address
                 )
+                if not ok:
+                    raise RuntimeError("Image conversion failed")
             except Exception as exc:  # pragma: no cover - UI feedback only
                 mb.setWindowTitle("Error")
-                mb.setText(f"Failed to save PDF:\n{exc}")
+                mb.setText(f"Failed to save image:\n{exc}")
             else:
                 mb.setWindowTitle("Downloaded")
-                mb.setText(f"Profile saved:\n{path}")
+                mb.setText(f"Profile image saved:\n{path}")
             apply_msgbox_style(mb)
             mb.exec_()
 

@@ -46,6 +46,7 @@ class StudentsPage(QWidget):
         self._filter_flag  = "all"
         self._filter_class = None
         self._filter_group = None
+        self._visible_rows = []
         self._build_ui()
         self.refresh_table()
 
@@ -241,6 +242,8 @@ class StudentsPage(QWidget):
             rows = [r for r in rows
                     if r["flag_data"]["flag"] == self._filter_flag]
 
+        self._visible_rows = rows
+
         self.table.setRowCount(len(rows))
         for row, r in enumerate(rows):
             for col, val in enumerate([
@@ -296,7 +299,11 @@ class StudentsPage(QWidget):
             centre_address = get_setting(
                 "centre_address", "Biratnagar-1, Bhatta Chowk"
             )
-            export_student_list_pdf(path, centre_name, centre_address)
+            student_ids = [r["sid"] for r in self._visible_rows]
+            export_student_list_pdf(
+                path, centre_name, centre_address,
+                student_ids=student_ids
+            )
             QMessageBox.information(
                 self, "Exported", f"Student list saved:\n{path}"
             )

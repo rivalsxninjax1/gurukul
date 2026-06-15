@@ -20,7 +20,7 @@ from services.subscription_service import (
     get_all_payments_for_student,
     add_payment,
     renew_subscription,
-    generate_payment_receipt,
+    generate_payment_receipt_image,
 )
 from utils.bs_converter import bs_str
 from ui.bs_widgets import BSDateEdit
@@ -486,7 +486,7 @@ class SubscriptionsPage(QWidget):
                 item.setForeground(Qt.black)
                 self.pay_table.setItem(r, c, item)
 
-            rcpt_btn = QPushButton("🧾  Print / PDF")
+            rcpt_btn = QPushButton("🧾  Print / Image")
             rcpt_btn.setStyleSheet(BTN_SECONDARY)
 
       
@@ -941,8 +941,8 @@ class ReceiptOptionsDialog(QDialog):
         print_btn.clicked.connect(self._do_print)
         fl.addWidget(print_btn)
 
-        # Download PDF button
-        dl_btn = QPushButton("⬇   Download PDF")
+        # Download Image button
+        dl_btn = QPushButton("⬇   Download Image")
         dl_btn.setStyleSheet("""
             QPushButton {
                 background: #1a1a1a; color: #ffffff;
@@ -983,19 +983,21 @@ class ReceiptOptionsDialog(QDialog):
             "centre_address", "Biratnagar-1, Bhatta Chowk"
         )
 
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
         tmp_path = tmp.name
         tmp.close()
         mb = QMessageBox(self)
         try:
-            generate_payment_receipt(
+            ok = generate_payment_receipt_image(
                 self.payment_id, tmp_path,
                 centre_name=centre_name,
                 centre_address=centre_address,
             )
+            if not ok:
+                raise RuntimeError("Image conversion failed")
         except Exception as exc:
             mb.setWindowTitle("Error")
-            mb.setText(f"Failed to generate receipt PDF:\n{exc}")
+            mb.setText(f"Failed to generate receipt image:\n{exc}")
             apply_msgbox_style(mb)
             mb.exec_()
             return
@@ -1003,24 +1005,24 @@ class ReceiptOptionsDialog(QDialog):
         opened = self._open_pdf(tmp_path)
         if opened:
             mb.setWindowTitle("Receipt Ready")
-            mb.setText("Receipt PDF opened in your default viewer.\nPlease print it from there.")
+            mb.setText("Receipt image opened in your default viewer.\nPlease print it from there.")
             apply_msgbox_style(mb)
             mb.exec_()
             self.accept()
         else:
             mb.setWindowTitle("Viewer Unavailable")
             mb.setText(
-                "Couldn't open the receipt PDF automatically.\n"
-                "Please use the Download PDF option instead."
+                "Couldn't open the receipt image automatically.\n"
+                "Please use the Download Image option instead."
             )
             apply_msgbox_style(mb)
             mb.exec_()
 
     def _do_download(self):
         path, _ = QFileDialog.getSaveFileName(
-            self, "Save Receipt PDF",
-            f"receipt_{self.payment_id}.pdf",
-            "PDF Files (*.pdf)"
+            self, "Save Receipt Image",
+            f"receipt_{self.payment_id}.png",
+            "PNG Image (*.png)"
         )
         if path:
             mb   = QMessageBox(self)
@@ -1031,14 +1033,16 @@ class ReceiptOptionsDialog(QDialog):
                 "centre_address", "Biratnagar-1, Bhatta Chowk"
             )
             try:
-                generate_payment_receipt(
+                ok = generate_payment_receipt_image(
                     self.payment_id, path,
                     centre_name=centre_name,
                     centre_address=centre_address,
                 )
+                if not ok:
+                    raise RuntimeError("Image conversion failed")
             except Exception as exc:
                 mb.setWindowTitle("Error")
-                mb.setText(f"Failed to save PDF:\n{exc}")
+                mb.setText(f"Failed to save image:\n{exc}")
             else:
                 mb.setWindowTitle("Saved")
                 mb.setText(f"Receipt saved:\n{path}")

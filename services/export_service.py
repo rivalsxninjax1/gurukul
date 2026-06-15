@@ -120,9 +120,13 @@ def _build_pdf_header(content: list, centre_name: str,
 
 def export_student_list_pdf(filepath: str,
                             centre_name: str = CENTRE_NAME,
-                            centre_address: str = CENTRE_ADDRESS):
+                            centre_address: str = CENTRE_ADDRESS,
+                            student_ids: list | None = None):
     session = get_session()
-    students = session.query(Student).order_by(Student.name).all()
+    query = session.query(Student)
+    if student_ids is not None:
+        query = query.filter(Student.id.in_(student_ids))
+    students = query.order_by(Student.name).all()
     rows = [["#", "User ID", "Name", "Phone",
              "Guardian", "Class", "Group", "Join Date (BS)"]]
     for i, s in enumerate(students, 1):
@@ -145,9 +149,10 @@ def export_student_list_pdf(filepath: str,
         topMargin=1.5*cm,  bottomMargin=1.5*cm
     )
     content = []
+    subtitle_suffix = " (filtered)" if student_ids is not None else ""
     _build_pdf_header(
         content, centre_name, centre_address,
-        f"Student List  ·  Generated: {bs_str(date.today())}"
+        f"Student List{subtitle_suffix}  ·  Generated: {bs_str(date.today())}"
         f"  ·  Total: {len(students)} students"
     )
 
@@ -311,6 +316,33 @@ def export_student_profile_pdf(student_id: int, filepath: str,
     ))
     doc.build(content)
     logger.info(f"Student profile PDF: {filepath}")
+
+
+def export_student_profile_image(student_id: int, filepath: str,
+                                  centre_name: str = CENTRE_NAME,
+                                  centre_address: str = CENTRE_ADDRESS) -> bool:
+    """Generate the student profile as a single PNG image.
+
+    Builds the exact same one-page report as export_student_profile_pdf,
+    then rasterizes it to a PNG so it can be placed into other documents
+    or combined on one printed sheet. Returns True on success.
+    """
+    import tempfile
+    import os
+    from utils.pdf_to_image import pdf_first_page_to_png
+
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    tmp_path = tmp.name
+    tmp.close()
+    try:
+        export_student_profile_pdf(student_id, tmp_path, centre_name, centre_address)
+        ok = pdf_first_page_to_png(tmp_path, filepath, dpi=200)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+    if ok:
+        logger.info(f"Student profile image: {filepath}")
+    return ok
 
 
 def export_teacher_profile_pdf(teacher_id: int, filepath: str,

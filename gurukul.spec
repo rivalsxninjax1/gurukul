@@ -28,6 +28,7 @@ a = Analysis(
         'dateutil.relativedelta',
         'PIL',
         'PIL.Image',
+        'fitz',
         'PyQt5',
         'PyQt5.QtWidgets',
         'PyQt5.QtCore',

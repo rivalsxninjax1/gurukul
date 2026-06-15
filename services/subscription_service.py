@@ -455,3 +455,28 @@ def generate_payment_receipt(payment_id: int, output_path: str,
     c.setFillColorRGB(0.55, 0.55, 0.55)
     c.drawCentredString(W / 2, 18, "Thank you! — Computer generated receipt.")
     c.save()
+
+
+def generate_payment_receipt_image(
+        payment_id: int, output_path: str,
+        centre_name: str = "GURUKUL ACADEMY AND TRAINING CENTER",
+        centre_address: str = "Biratnagar-1, Bhatta Chowk") -> bool:
+    """Generate the payment receipt as a single PNG image (same A6 layout
+    as generate_payment_receipt, rasterized to a PNG so it can be placed
+    onto other documents or combined on one printed sheet)."""
+    import tempfile
+    import os
+    from utils.pdf_to_image import pdf_first_page_to_png
+
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    tmp_path = tmp.name
+    tmp.close()
+    try:
+        generate_payment_receipt(payment_id, tmp_path, centre_name, centre_address)
+        ok = pdf_first_page_to_png(tmp_path, output_path, dpi=300)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+    if ok:
+        logger.info(f"Payment receipt image: {output_path}")
+    return ok
