@@ -8,6 +8,7 @@ class EventBus(QObject):
     billing_updated        = pyqtSignal()
     open_student_profile   = pyqtSignal(int)
     open_teacher_profile   = pyqtSignal(int)
+    class_group_changed    = pyqtSignal()
 
 
 bus = EventBus()

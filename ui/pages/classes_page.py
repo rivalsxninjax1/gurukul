@@ -8,6 +8,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QColor
 from database.connection import get_session
 from models.class_group import Class, Group
+from ui.event_bus import bus
 
 
 # ─── Shared style helpers ───────────────────────────────────────────────────
@@ -305,6 +306,8 @@ class ClassesPage(QWidget):
         # Reset group panel if selected class is gone
         if self.selected_class_id is not None:
             self._refresh_groups_for(self.selected_class_id)
+
+        bus.class_group_changed.emit()
 
     def _refresh_groups_for(self, class_id):
         session = get_session()

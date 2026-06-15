@@ -211,6 +211,8 @@ class MainWindow(QMainWindow):
         bus.payment_added.connect(self.expenses_page.refresh)
         bus.student_saved.connect(self.dashboard_page.refresh)
         bus.student_saved.connect(self.subscriptions_page._load_students)
+        bus.student_saved.connect(self.students_page.refresh_table)
+        bus.class_group_changed.connect(self.students_page.refresh_filters)
         bus.open_student_profile.connect(self._open_student_profile)
         bus.open_teacher_profile.connect(self._open_teacher_profile)
 

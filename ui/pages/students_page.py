@@ -202,6 +202,51 @@ class StudentsPage(QWidget):
         self._filter_group = self.group_filter.currentData()
         self.refresh_table()
 
+    def refresh_filters(self):
+        """Refresh the Class/Group filter dropdowns to pick up classes or
+        groups added, renamed, or removed elsewhere (e.g. the Classes &
+        Groups page), while preserving the current selection if it is
+        still valid."""
+        session = get_session()
+        classes = [(c.id, c.name) for c in session.query(Class).all()]
+        session.close()
+
+        prev_class = self._filter_class
+        prev_group = self._filter_group
+
+        self.class_filter.blockSignals(True)
+        self.class_filter.clear()
+        self.class_filter.addItem("All Classes", None)
+        for cid, cname in classes:
+            self.class_filter.addItem(cname, cid)
+        idx = self.class_filter.findData(prev_class)
+        if idx < 0:
+            idx = 0
+            prev_group = None
+        self.class_filter.setCurrentIndex(idx)
+        self._filter_class = self.class_filter.currentData()
+        self.class_filter.blockSignals(False)
+
+        self.group_filter.blockSignals(True)
+        self.group_filter.clear()
+        self.group_filter.addItem("All Groups", None)
+        if self._filter_class:
+            session = get_session()
+            groups = session.query(Group).filter_by(
+                class_id=self._filter_class
+            ).all()
+            session.close()
+            for g in groups:
+                self.group_filter.addItem(g.name, g.id)
+        gidx = self.group_filter.findData(prev_group)
+        if gidx < 0:
+            gidx = 0
+        self.group_filter.setCurrentIndex(gidx)
+        self._filter_group = self.group_filter.currentData()
+        self.group_filter.blockSignals(False)
+
+        self.refresh_table()
+
     def _set_filter(self, key):
         self._filter_flag = key
         for k, btn in self._filter_btns.items():
