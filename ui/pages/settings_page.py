@@ -10,7 +10,8 @@ from services.backup_service import backup_database, restore_database
 from ui.styles import (
     BTN_PRIMARY, BTN_SECONDARY, BTN_DANGER,
     INPUT_STYLE, PAGE_TITLE_STYLE, PANEL_TITLE_STYLE,
-    SECTION_LABEL_STYLE, CARD_STYLE, FORM_LABEL_STYLE
+    SECTION_LABEL_STYLE, CARD_STYLE, FORM_LABEL_STYLE,
+    apply_msgbox_style
 )
 
 
@@ -184,28 +185,50 @@ class SettingsPage(QWidget):
 
     def _backup(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Backup Folder")
-        if folder:
+        if not folder:
+            return
+        try:
             dest = backup_database(folder)
-            QMessageBox.information(self, "Backup Complete",
-                                    f"Database backed up to:\n{dest}")
+            mb = QMessageBox(self)
+            mb.setWindowTitle("Backup Complete")
+            mb.setText(f"Database backed up successfully.\n\nSaved to:\n{dest}")
+            apply_msgbox_style(mb)
+            mb.exec_()
+        except Exception as exc:
+            mb = QMessageBox(self)
+            mb.setWindowTitle("Backup Failed")
+            mb.setText(f"Backup failed:\n{exc}\n\nCheck application logs for details.")
+            apply_msgbox_style(mb)
+            mb.exec_()
 
     def _restore(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Select Backup File", "", "Database (*.db)"
+            self, "Select Backup File", "", "Gurukul Backup (*.db)"
         )
-        if path:
-            reply = QMessageBox.question(
-                self, "Confirm Restore",
-                "This will REPLACE your current database.\n"
-                "All unsaved changes will be lost.\n\nProceed?",
-                QMessageBox.Yes | QMessageBox.No
-            )
-            if reply == QMessageBox.Yes:
-                if restore_database(path):
-                    QMessageBox.information(self, "Restored",
-                                            "Database restored. Please restart the app.")
-                else:
-                    QMessageBox.critical(self, "Failed", "Restore failed. Check logs.")
+        if not path:
+            return
+        reply = QMessageBox.question(
+            self, "Confirm Restore",
+            "This will REPLACE your current database with the selected backup.\n"
+            "A safety snapshot of your current data will be saved automatically "
+            "before the restore begins.\n\n"
+            "The application must be restarted after restoring.\n\n"
+            "Proceed?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+        ok, msg = restore_database(path)
+        mb = QMessageBox(self)
+        if ok:
+            mb.setWindowTitle("Restore Complete")
+            mb.setText(msg + "\n\nPlease close and restart the application now.")
+        else:
+            mb.setWindowTitle("Restore Failed")
+            mb.setText(msg)
+        apply_msgbox_style(mb)
+        mb.exec_()
 
     def _change_password(self):
         old_pw = self._old_pw_input.text().strip()
