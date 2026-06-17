@@ -5,6 +5,7 @@ from database.init_db import initialize_database
 from services.auth_service import create_default_admin
 from ui.login_window import LoginWindow
 from ui.main_window import MainWindow
+from ui.styles import MSGBOX_STYLE
 
 def main():
     setup_logger()
@@ -13,6 +14,11 @@ def main():
 
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
+
+    # Apply QMessageBox style globally so every dialog — including those
+    # created via the static QMessageBox.question/warning/information/critical
+    # convenience methods — shows dark text on a white background.
+    app.setStyleSheet(MSGBOX_STYLE)
 
     main_win = MainWindow()
 

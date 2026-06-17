@@ -259,6 +259,15 @@ MSGBOX_STYLE = """
         color: #1a1a1a;
         font-size: 13px;
         background: transparent;
+        min-width: 280px;
+    }
+    QMessageBox QWidget {
+        background-color: #ffffff;
+        color: #1a1a1a;
+    }
+    QMessageBox QTextEdit {
+        color: #1a1a1a;
+        background: #ffffff;
     }
     QMessageBox QPushButton {
         background: #1a1a1a;
@@ -321,6 +330,34 @@ MSG_INFO_FG    = "#1a3a6b";  MSG_INFO_BG    = "#e8f0fb";  MSG_INFO_BD    = "#b8c
 
 
 def apply_msgbox_style(msgbox):
-    """Apply readable style to any QMessageBox instance."""
+    """Apply readable style to any QMessageBox instance.
+
+    Combines a stylesheet (catches most Qt platforms) with an explicit
+    QPalette override on every child QLabel (needed on macOS and Windows
+    where the OS theme can override stylesheet text color, making white
+    text invisible on white background).
+    """
+    from PyQt5.QtGui import QPalette, QColor
+    from PyQt5.QtWidgets import QLabel
+
     msgbox.setStyleSheet(MSGBOX_STYLE)
+
+    # Force dark text on every label child — palette beats OS theme overrides
+    palette = msgbox.palette()
+    palette.setColor(QPalette.Window,      QColor("#ffffff"))
+    palette.setColor(QPalette.WindowText,  QColor("#1a1a1a"))
+    palette.setColor(QPalette.Text,        QColor("#1a1a1a"))
+    palette.setColor(QPalette.ButtonText,  QColor("#ffffff"))
+    palette.setColor(QPalette.Button,      QColor("#1a1a1a"))
+    msgbox.setPalette(palette)
+
+    for child in msgbox.findChildren(QLabel):
+        child_palette = child.palette()
+        child_palette.setColor(QPalette.WindowText, QColor("#1a1a1a"))
+        child_palette.setColor(QPalette.Text,       QColor("#1a1a1a"))
+        child.setPalette(child_palette)
+        child.setStyleSheet(
+            "color: #1a1a1a; background: transparent; font-size: 13px;"
+        )
+
     return msgbox
