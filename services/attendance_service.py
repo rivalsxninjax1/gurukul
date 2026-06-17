@@ -517,3 +517,327 @@ def import_attendance_excel(filepath: str, col_map: dict) -> dict:
         session.close()
 
     return results
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Wide-format (machine export) attendance parser
+# File layout:
+#   Row 1 : "Attendance Record"  (title — skipped)
+#   Row 2 : empty               (skipped)
+#   Row 3 : metadata            (skipped)
+#   Row 4 : headers → "Employee ID" | "Card No." | "Name" | "Department"
+#             | "YYYY/MM/DD" … (one column per day)
+#   Row 5 : sub-header "SW - EW" under each date column (skipped)
+#   Row 6+: one row per person
+#             Col A = Employee ID  (matches student/teacher user_id)
+#             Col B = Card No.     (ignored)
+#             Col C = Name         (ignored — always match on ID)
+#             Col D = Department   (ignored)
+#             Date cols = multiline string, up to 4 lines of "HH:MM HH:MM"
+#                         "--:--" means no punch for that slot
+# ─────────────────────────────────────────────────────────────────────────────
+
+_WIDE_DATE_RE = re.compile(r"^\d{4}[/\-]\d{2}[/\-]\d{2}$")
+_WIDE_TIME_RE = re.compile(r"^(\d{2}:\d{2})$")
+_WIDE_BLANK   = "--:--"
+
+
+def _is_wide_format(filepath: str) -> bool:
+    """
+    Peek at the Excel file and return True if it matches the
+    machine-export wide format:
+      - Sheet contains 'Attendance Record' in cell A1
+      - Row 4 (index 3) has date-pattern headers starting at col 5+
+    Returns False on any read error (safe fallback to old parser).
+    """
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
+        ws = wb.active
+        rows = list(ws.iter_rows(min_row=1, max_row=4, values_only=True))
+        wb.close()
+        if not rows:
+            return False
+        # Row 1: title check
+        title = str(rows[0][0] or "").strip()
+        if "attendance record" not in title.lower():
+            return False
+        # Row 4: at least one date-pattern header after col D (index 4+)
+        if len(rows) < 4:
+            return False
+        header_row = rows[3]
+        for val in header_row[4:]:
+            if val and _WIDE_DATE_RE.match(str(val).strip()):
+                return True
+        return False
+    except Exception as exc:
+        logger.warning(f"Wide-format detection error: {exc}")
+        return False
+
+
+def _parse_wide_time(t: str):
+    """
+    Parse a single 'HH:MM' token from the machine export.
+    Returns a time_type or None if blank/invalid.
+    """
+    t = t.strip()
+    if t == _WIDE_BLANK or not t:
+        return None
+    m = _WIDE_TIME_RE.match(t)
+    if not m:
+        return None
+    try:
+        h, mi = t.split(":")
+        return time_type(int(h), int(mi))
+    except (ValueError, TypeError):
+        return None
+
+
+def _parse_wide_cell(cell_value: str):
+    """
+    Parse one attendance cell which contains up to 4 lines of 'SW EW' pairs.
+    Example:
+        '--:-- --:--\n--:-- --:--\n--:-- --:--\n--:-- 21:07'
+    Returns (entry_time, exit_time, has_any_punch):
+        entry_time → first non-blank SW time found  (time_type | None)
+        exit_time  → last  non-blank EW time found  (time_type | None)
+        has_any_punch → True if at least one non-blank time exists
+    """
+    if not cell_value:
+        return None, None, False
+    lines = str(cell_value).strip().split("\n")
+    start_times = []
+    end_times   = []
+    for line in lines:
+        parts = line.strip().split()
+        if len(parts) >= 2:
+            sw = _parse_wide_time(parts[0])
+            ew = _parse_wide_time(parts[1])
+            if sw:
+                start_times.append(sw)
+            if ew:
+                end_times.append(ew)
+        elif len(parts) == 1:
+            t = _parse_wide_time(parts[0])
+            if t:
+                start_times.append(t)
+
+    has_any = bool(start_times or end_times)
+    entry = start_times[0]  if start_times else None
+    exit_ = end_times[-1]   if end_times   else None
+    return entry, exit_, has_any
+
+
+def import_attendance_wide_format(filepath: str) -> dict:
+    """
+    Import attendance from the machine-export wide-format Excel file.
+
+    - Matches ONLY on Employee ID (col A) against student.user_id /
+      teacher.user_id — name column is never used for matching.
+    - Dates come from column headers (format YYYY/MM/DD or YYYY-MM-DD).
+    - Converts AD → BS using the existing bs_converter (same as old parser).
+    - Reuses the same Attendance / TeacherAttendance / AttendanceRawLog /
+      UnmatchedAttendanceLog models and deduplication logic.
+    - Returns the same result dict as import_attendance_excel().
+    """
+    from datetime import datetime as _dt
+    import openpyxl
+
+    session  = get_session()
+    results  = {"success": 0, "errors": [], "unknown_ids": []}
+    src_file = os.path.basename(filepath)
+
+    # ── Load workbook ─────────────────────────────────────────────────────────
+    try:
+        wb = openpyxl.load_workbook(filepath, data_only=True)
+        ws = wb.active
+    except Exception as e:
+        session.close()
+        return {"success": 0,
+                "errors": [f"Cannot open file: {e}"],
+                "unknown_ids": []}
+
+    all_rows = list(ws.iter_rows(values_only=True))
+
+    # ── Locate header row (the one with "Employee ID" in col A) ──────────────
+    header_row_idx = None
+    for i, row in enumerate(all_rows):
+        if row and str(row[0] or "").strip().lower() == "employee id":
+            header_row_idx = i
+            break
+
+    if header_row_idx is None:
+        session.close()
+        wb.close()
+        return {"success": 0,
+                "errors": ["Could not find 'Employee ID' header row in file."],
+                "unknown_ids": []}
+
+    header_row = all_rows[header_row_idx]
+
+    # ── Extract date columns (any col after index 3 with YYYY/MM/DD header) ──
+    date_columns = []  # list of (col_index, date_type)
+    for col_idx, val in enumerate(header_row):
+        if col_idx < 4:
+            continue
+        if val is None:
+            continue
+        val_str = str(val).strip().replace("-", "/")
+        if _WIDE_DATE_RE.match(val_str.replace("/", "/")): # already normalised
+            try:
+                parts = val_str.split("/")
+                ad_date = date_type(int(parts[0]), int(parts[1]), int(parts[2]))
+                date_columns.append((col_idx, ad_date))
+            except (ValueError, IndexError) as exc:
+                logger.warning(f"Skipping unparseable date header '{val}': {exc}")
+
+    if not date_columns:
+        session.close()
+        wb.close()
+        return {"success": 0,
+                "errors": ["No valid date columns found in header row."],
+                "unknown_ids": []}
+
+    logger.info(
+        f"Wide-format import: {len(date_columns)} date columns found "
+        f"({date_columns[0][1]} → {date_columns[-1][1]})"
+    )
+
+    # ── Pre-load all student / teacher ID maps ────────────────────────────────
+    all_students = {s.user_id: s.id for s in session.query(Student).all()}
+    all_teachers = {t.user_id: t.id for t in session.query(Teacher).all()}
+
+    # ── Data rows start 2 rows after header (skip sub-header "SW - EW" row) ──
+    data_start = header_row_idx + 2
+    seen_unknown = set()
+
+    for row in all_rows[data_start:]:
+        if not row or row[0] is None:
+            continue
+
+        uid_str = str(row[0]).strip()
+        if not uid_str or uid_str.lower() in ("", "nan", "none"):
+            continue
+
+        logger.info(f"Wide-format: processing uid={uid_str}")
+
+        for col_idx, ad_date in date_columns:
+            cell_val = row[col_idx] if col_idx < len(row) else None
+            entry_time, exit_time, has_punch = _parse_wide_cell(cell_val)
+
+            # Log raw record regardless of match (audit trail)
+            raw_str = str(cell_val).strip() if cell_val else ""
+            try:
+                session.add(AttendanceRawLog(
+                    user_id     = uid_str,
+                    timestamp   = f"{ad_date} | {raw_str[:120]}",
+                    source_file = src_file,
+                ))
+                session.flush()
+            except Exception:
+                session.rollback()
+
+            if not has_punch:
+                # Absent — no punch recorded for this day; skip DB record
+                logger.debug(f"  uid={uid_str} date={ad_date} → Absent (no punch)")
+                continue
+
+            bs_date_str = bs_str(ad_date)
+            logger.info(
+                f"  uid={uid_str} AD={ad_date} BS={bs_date_str} "
+                f"entry={entry_time} exit={exit_time}"
+            )
+
+            is_teacher_id = uid_str.upper().startswith("T")
+            student_id    = all_students.get(uid_str)
+            teacher_id    = all_teachers.get(uid_str)
+            matched       = False
+
+            # ── Teacher route ─────────────────────────────────────────────────
+            if teacher_id and is_teacher_id:
+                status = "Present" if exit_time else "Incomplete"
+                exists = session.query(TeacherAttendance).filter_by(
+                    teacher_id=teacher_id, date=ad_date
+                ).first()
+                if not exists:
+                    session.add(TeacherAttendance(
+                        teacher_id  = teacher_id,
+                        date        = ad_date,
+                        entry_time  = entry_time,
+                        exit_time   = exit_time,
+                        status      = status,
+                        source_file = src_file,
+                    ))
+                    results["success"] += 1
+                matched = True
+
+            # ── Student route ─────────────────────────────────────────────────
+            elif student_id and not is_teacher_id:
+                status = "Present" if exit_time else "Incomplete"
+                exists = session.query(Attendance).filter_by(
+                    student_id=student_id, date=ad_date
+                ).first()
+                if not exists:
+                    session.add(Attendance(
+                        student_id = student_id,
+                        date       = ad_date,
+                        entry_time = entry_time,
+                        exit_time  = exit_time,
+                        status     = status,
+                    ))
+                    results["success"] += 1
+                matched = True
+
+            # ── Fallback: ID prefix doesn't match expected type ───────────────
+            if not matched:
+                if student_id:
+                    status = "Present" if exit_time else "Incomplete"
+                    exists = session.query(Attendance).filter_by(
+                        student_id=student_id, date=ad_date
+                    ).first()
+                    if not exists:
+                        session.add(Attendance(
+                            student_id = student_id,
+                            date       = ad_date,
+                            entry_time = entry_time,
+                            exit_time  = exit_time,
+                            status     = status,
+                        ))
+                        results["success"] += 1
+                    matched = True
+                elif teacher_id:
+                    status = "Present" if exit_time else "Incomplete"
+                    exists = session.query(TeacherAttendance).filter_by(
+                        teacher_id=teacher_id, date=ad_date
+                    ).first()
+                    if not exists:
+                        session.add(TeacherAttendance(
+                            teacher_id  = teacher_id,
+                            date        = ad_date,
+                            entry_time  = entry_time,
+                            exit_time   = exit_time,
+                            status      = status,
+                            source_file = src_file,
+                        ))
+                        results["success"] += 1
+                    matched = True
+
+            if not matched and uid_str not in seen_unknown:
+                seen_unknown.add(uid_str)
+                results["unknown_ids"].append(uid_str)
+                session.add(UnmatchedAttendanceLog(
+                    user_id   = uid_str,
+                    timestamp = str(ad_date),
+                    reason    = "No matching student or teacher ID",
+                ))
+
+    try:
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        results["errors"].append(f"Database commit error: {e}")
+    finally:
+        session.close()
+        wb.close()
+
+    return results

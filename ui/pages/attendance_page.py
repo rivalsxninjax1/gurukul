@@ -10,7 +10,7 @@ import math
 import re
 from datetime import datetime as dt_type, time as time_type
 
-from services.attendance_service import import_attendance_excel
+from services.attendance_service import import_attendance_excel, import_attendance_wide_format, _is_wide_format
 from database.connection import get_session
 from models.attendance import Attendance, TeacherAttendance
 from models.class_group import Class, Group
@@ -129,15 +129,21 @@ def _parse_ts_value(text: str):
 class ImportWorker(QThread):
     finished = pyqtSignal(dict)
 
-    def __init__(self, filepath, col_map):
+    def __init__(self, filepath, col_map=None, wide_format=False):
         super().__init__()
-        self.filepath = filepath
-        self.col_map  = col_map
+        self.filepath    = filepath
+        self.col_map     = col_map
+        self.wide_format = wide_format
 
     def run(self):
-        self.finished.emit(
-            import_attendance_excel(self.filepath, self.col_map)
-        )
+        if self.wide_format:
+            self.finished.emit(
+                import_attendance_wide_format(self.filepath)
+            )
+        else:
+            self.finished.emit(
+                import_attendance_excel(self.filepath, self.col_map)
+            )
 
 
 class AttendancePage(QWidget):
@@ -410,6 +416,29 @@ class AttendancePage(QWidget):
         )
         if not filepath:
             return
+
+        # ── Auto-detect machine-export wide format ────────────────────────────
+        if _is_wide_format(filepath):
+            reply = QMessageBox.question(
+                self,
+                "Machine Export Detected",
+                "This file looks like a machine attendance export\n"
+                "(wide format with one column per day).\n\n"
+                "Import it automatically?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Yes,
+            )
+            if reply != QMessageBox.Yes:
+                return
+            self._last_file    = filepath
+            self._last_col_map = None
+            self.overlay.show_with_text("Importing attendance…")
+            self.worker = ImportWorker(filepath, wide_format=True)
+            self.worker.finished.connect(self._on_import_done)
+            self.worker.start()
+            return
+
+        # ── Existing manual column-mapping path (unchanged) ───────────────────
         try:
             df      = pd.read_excel(filepath)
             columns = list(df.columns)
@@ -431,7 +460,7 @@ class AttendancePage(QWidget):
         self._last_col_map = col_map
         self.overlay.show_with_text("Importing attendance…")
 
-        self.worker = ImportWorker(filepath, col_map)
+        self.worker = ImportWorker(filepath, col_map=col_map, wide_format=False)
         self.worker.finished.connect(self._on_import_done)
         self.worker.start()
 
