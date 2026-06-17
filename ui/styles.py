@@ -261,14 +261,6 @@ MSGBOX_STYLE = """
         background: transparent;
         min-width: 280px;
     }
-    QMessageBox QWidget {
-        background-color: #ffffff;
-        color: #1a1a1a;
-    }
-    QMessageBox QTextEdit {
-        color: #1a1a1a;
-        background: #ffffff;
-    }
     QMessageBox QPushButton {
         background: #1a1a1a;
         color: #ffffff;
