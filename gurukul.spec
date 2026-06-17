@@ -1,16 +1,24 @@
 # gurukul.spec
+# PyInstaller build spec for Gurukul CMS
+# Build ONLY on Windows to produce a Windows .exe
+# Command: pyinstaller gurukul.spec
+
 import sys
 import os
 
 block_cipher = None
 
+# Collect all PyMuPDF files (includes native .dll/.so binaries)
+from PyInstaller.utils.hooks import collect_all
+fitz_datas, fitz_binaries, fitz_hiddenimports = collect_all('fitz')
+
 a = Analysis(
     ['main.py'],
     pathex=['.'],
-    binaries=[],
+    binaries=fitz_binaries,
     datas=[
         ('assets/logo.png', 'assets'),
-    ],
+    ] + fitz_datas,
     hiddenimports=[
         'sqlalchemy.dialects.sqlite',
         'sqlalchemy.sql.default_comparator',
@@ -29,11 +37,13 @@ a = Analysis(
         'PIL',
         'PIL.Image',
         'fitz',
+        'pymupdf',
         'PyQt5',
         'PyQt5.QtWidgets',
         'PyQt5.QtCore',
         'PyQt5.QtGui',
-    ],
+        'PyQt5.QtPrintSupport',
+    ] + fitz_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -64,10 +74,10 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,          # No black console window
+    console=False,
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,              # Set to 'assets/icon.ico' if you have one
+    icon='assets/icon.ico',   # Will be skipped gracefully if file not present
 )

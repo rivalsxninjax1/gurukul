@@ -36,8 +36,11 @@ _REQUIRED_TABLES = {
 
 
 def _resolve_db_path() -> str:
-    """Return the absolute path to the live database."""
-    return os.path.abspath(_DB_FILENAME)
+    """Return the absolute path to the live database.
+    Delegates to database/connection.py which handles both dev and
+    PyInstaller packaged environments correctly."""
+    from database.connection import _DB_PATH
+    return os.path.abspath(_DB_PATH)
 
 
 def _validate_backup_file(path: str) -> tuple[bool, str]:

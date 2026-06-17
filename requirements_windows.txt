@@ -1,0 +1,12 @@
+# Gurukul CMS — Windows dependencies
+# Install with: pip install -r requirements_windows.txt
+
+PyQt5==5.15.11
+SQLAlchemy==2.0.48
+bcrypt==5.0.0
+pandas==2.2.0
+openpyxl==3.1.5
+reportlab==4.4.10
+Pillow==10.4.0
+python-dateutil==2.9.0.post0
+PyMuPDF==1.27.2
