@@ -10,3 +10,4 @@ reportlab==4.4.10
 Pillow==10.4.0
 python-dateutil==2.9.0.post0
 PyMuPDF==1.27.2
+xlrd==2.0.1

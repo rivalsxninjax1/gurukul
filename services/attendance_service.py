@@ -546,23 +546,30 @@ def _is_wide_format(filepath: str) -> bool:
     """
     Peek at the Excel file and return True if it matches the
     machine-export wide format:
-      - Sheet contains 'Attendance Record' in cell A1
+      - Cell A1 contains 'Attendance Record'
       - Row 4 (index 3) has date-pattern headers starting at col 5+
+    Supports both .xlsx (openpyxl) and .xls (xlrd).
     Returns False on any read error (safe fallback to old parser).
     """
     try:
-        import openpyxl
-        wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
-        ws = wb.active
-        rows = list(ws.iter_rows(min_row=1, max_row=4, values_only=True))
-        wb.close()
+        fp = str(filepath).lower()
+        if fp.endswith(".xls") and not fp.endswith(".xlsx"):
+            import xlrd
+            wb = xlrd.open_workbook(filepath)
+            ws = wb.sheet_by_index(0)
+            rows = [ws.row_values(i) for i in range(min(4, ws.nrows))]
+        else:
+            import openpyxl
+            wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
+            ws = wb.active
+            rows = list(ws.iter_rows(min_row=1, max_row=4, values_only=True))
+            wb.close()
+
         if not rows:
             return False
-        # Row 1: title check
         title = str(rows[0][0] or "").strip()
         if "attendance record" not in title.lower():
             return False
-        # Row 4: at least one date-pattern header after col D (index 4+)
         if len(rows) < 4:
             return False
         header_row = rows[3]
@@ -632,6 +639,9 @@ def import_attendance_wide_format(filepath: str) -> dict:
     """
     Import attendance from the machine-export wide-format Excel file.
 
+    Supports both .xlsx (openpyxl) and .xls (xlrd) — the Hikvision
+    device can export either format depending on firmware version.
+
     - Matches ONLY on Employee ID (col A) against student.user_id /
       teacher.user_id — name column is never used for matching.
     - Dates come from column headers (format YYYY/MM/DD or YYYY-MM-DD).
@@ -640,24 +650,30 @@ def import_attendance_wide_format(filepath: str) -> dict:
       UnmatchedAttendanceLog models and deduplication logic.
     - Returns the same result dict as import_attendance_excel().
     """
-    from datetime import datetime as _dt
-    import openpyxl
-
     session  = get_session()
     results  = {"success": 0, "errors": [], "unknown_ids": []}
     src_file = os.path.basename(filepath)
 
-    # ── Load workbook ─────────────────────────────────────────────────────────
+    # ── Load workbook (xls or xlsx) ───────────────────────────────────────────
     try:
-        wb = openpyxl.load_workbook(filepath, data_only=True)
-        ws = wb.active
+        fp = str(filepath).lower()
+        if fp.endswith(".xls") and not fp.endswith(".xlsx"):
+            import xlrd
+            _wb  = xlrd.open_workbook(filepath)
+            _ws  = _wb.sheet_by_index(0)
+            all_rows = [_ws.row_values(i) for i in range(_ws.nrows)]
+            _wb  = None  # xlrd has no close(); let GC handle
+        else:
+            import openpyxl
+            wb = openpyxl.load_workbook(filepath, data_only=True)
+            ws = wb.active
+            all_rows = list(ws.iter_rows(values_only=True))
+            wb.close()
     except Exception as e:
         session.close()
         return {"success": 0,
                 "errors": [f"Cannot open file: {e}"],
                 "unknown_ids": []}
-
-    all_rows = list(ws.iter_rows(values_only=True))
 
     # ── Locate header row (the one with "Employee ID" in col A) ──────────────
     header_row_idx = None
@@ -838,6 +854,5 @@ def import_attendance_wide_format(filepath: str) -> dict:
         results["errors"].append(f"Database commit error: {e}")
     finally:
         session.close()
-        wb.close()
 
     return results

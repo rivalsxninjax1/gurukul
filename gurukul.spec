@@ -37,6 +37,7 @@ a = Analysis(
         'PIL',
         'PIL.Image',
         'fitz',
+        'xlrd',
         'pymupdf',
         'PyQt5',
         'PyQt5.QtWidgets',
