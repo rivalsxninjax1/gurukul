@@ -215,6 +215,12 @@ def add_payment(student_id: int, subscription_id: int,
 
 
 def get_subscription_dashboard_stats() -> dict:
+    """Calculate dashboard statistics.
+
+    Pending / Outstanding includes balances from ALL subscriptions
+    (active and expired) where the student still owes money.
+    Total Revenue only counts actual payments received.
+    """
     session      = get_session()
     today        = date.today()
     students     = session.query(Student).all()
@@ -223,25 +229,49 @@ def get_subscription_dashboard_stats() -> dict:
     pending_count = 0
     total_revenue = 0.0
     total_pending = 0.0
+
     for s in students:
-        active_subs = [sub for sub in s.subscriptions
-                       if sub.status == "active"]
-        if not active_subs:
-            expired_count += 1
+        subs = s.subscriptions
+        if not subs:
             continue
-        sub  = active_subs[-1]
-        paid = sum(p.amount_paid for p in sub.payments)
-        total_revenue += paid
-        balance = sub.total_fee - paid
-        if balance > 0:
-            total_pending += balance
-        if sub.end_date < today:
-            sub.status = "expired"
-            expired_count += 1
-        else:
-            active_count += 1
+
+        # Mark any active sub that has passed its end_date as expired
+        has_active = False
+        for sub in subs:
+            paid = sum(p.amount_paid for p in sub.payments)
+            total_revenue += paid
+
+            # Include outstanding balance from EVERY subscription
+            # (active OR expired) — unpaid dues don't disappear on expiry
+            balance = max(0.0, sub.total_fee - paid)
             if balance > 0:
+                total_pending += balance
+
+            if sub.status == "active":
+                if sub.end_date < today:
+                    sub.status = "expired"
+                else:
+                    has_active = True
+
+        if has_active:
+            active_count += 1
+            # Count as payment-pending if active sub has unpaid balance
+            active_subs = [sub for sub in subs if sub.status == "active"]
+            if active_subs:
+                active_sub = active_subs[-1]
+                active_paid = sum(p.amount_paid for p in active_sub.payments)
+                if active_sub.total_fee - active_paid > 0:
+                    pending_count += 1
+        else:
+            expired_count += 1
+            # Student has outstanding on expired subs — count as pending
+            total_owed = sum(
+                max(0.0, sub.total_fee - sum(p.amount_paid for p in sub.payments))
+                for sub in subs
+            )
+            if total_owed > 0:
                 pending_count += 1
+
     try:
         session.commit()
     except Exception:

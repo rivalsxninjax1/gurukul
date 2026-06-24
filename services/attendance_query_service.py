@@ -18,9 +18,8 @@ from models.attendance import Attendance
 from models.student import Student
 
 _STATUS_PRIORITY = {
-    "Present": 3,
-    "Incomplete": 2,
-    "Absent": 1,
+    "Present": 2,
+    "Absent":  1,
 }
 
 
@@ -29,15 +28,25 @@ def _priority(status: str | None) -> int:
 
 
 def _coalesce(records: List[Attendance]) -> Dict[tuple, dict]:
-    """Return {(student_id, date): {entry, exit, status}}."""
+    """Return {(student_id, date): {entry, exit, status}}.
+    Rule: any punch (entry OR exit) = Present. No punch = Absent.
+    Stored 'Incomplete' treated as Present (backward compat with old data).
+    """
 
     grouped: Dict[tuple, dict] = {}
     for att in records:
         key = (att.student_id, att.date)
-        status = att.status or ("Present" if att.exit_time else "Incomplete")
+        has_punch = bool(att.entry_time or att.exit_time)
+        stored = att.status or ""
+        # Backward compat: Incomplete → Present
+        if stored == "Incomplete":
+            stored = "Present"
+        status = stored if stored in ("Present", "Absent") else (
+            "Present" if has_punch else "Absent"
+        )
         rec = grouped.setdefault(key, {
             "entry": att.entry_time,
-            "exit": att.exit_time,
+            "exit":  att.exit_time,
             "status": status,
         })
 
@@ -49,8 +58,9 @@ def _coalesce(records: List[Attendance]) -> Dict[tuple, dict]:
             rec["exit"] is None or att.exit_time > rec["exit"]
         ):
             rec["exit"] = att.exit_time
-        if _priority(status) > _priority(rec["status"]):
-            rec["status"] = status
+        # Any punch upgrades to Present
+        if has_punch or stored == "Present":
+            rec["status"] = "Present"
     return grouped
 
 
@@ -114,7 +124,7 @@ def get_attendance_snapshot(ad_date: date_type,
         if not stu:
             continue
         status = rec["status"] or (
-            "Present" if rec.get("exit") else "Incomplete"
+            "Present" if (rec.get("entry") or rec.get("exit")) else "Absent"
         )
         rows.append({
             "student_id": stu.id,
@@ -196,7 +206,7 @@ def get_student_attendance_history(
                 "entry_time": rec.get("entry"),
                 "exit_time": rec.get("exit"),
                 "status": rec["status"] or (
-                    "Present" if rec.get("exit") else "Incomplete"
+                    "Present" if (rec.get("entry") or rec.get("exit")) else "Absent"
                 ),
             })
             if days and len(rows) >= days:
@@ -233,7 +243,7 @@ def get_student_attendance_history(
         rec = grouped.get((student_id, day))
         if rec:
             status = rec["status"] or (
-                "Present" if rec.get("exit") else "Incomplete"
+                "Present" if (rec.get("entry") or rec.get("exit")) else "Absent"
             )
             entry = rec.get("entry")
             exit_ = rec.get("exit")
