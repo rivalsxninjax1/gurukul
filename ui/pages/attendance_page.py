@@ -150,8 +150,9 @@ class AttendancePage(QWidget):
     def __init__(self):
         super().__init__()
         self.setStyleSheet("background: #f5f5f5;")
-        self._last_file    = None
-        self._last_col_map = None
+        self._last_file      = None
+        self._last_col_map   = None
+        self._last_wide_fmt  = False
         self._build_ui()
         self.refresh_tables()
 
@@ -432,6 +433,7 @@ class AttendancePage(QWidget):
                 return
             self._last_file    = filepath
             self._last_col_map = None
+            self._last_wide_fmt = True
             self.overlay.show_with_text("Importing attendance…")
             self.worker = ImportWorker(filepath, wide_format=True)
             self.worker.finished.connect(self._on_import_done)
@@ -458,6 +460,7 @@ class AttendancePage(QWidget):
 
         self._last_file    = filepath
         self._last_col_map = col_map
+        self._last_wide_fmt = False
         self.overlay.show_with_text("Importing attendance…")
 
         self.worker = ImportWorker(filepath, col_map=col_map, wide_format=False)
@@ -492,6 +495,16 @@ class AttendancePage(QWidget):
 
         self.refresh_tables()
         bus.attendance_imported.emit()
+
+        # After a wide-format import, jump the date filter to the most
+        # recent date that actually has records so the user sees data
+        # immediately instead of staring at today (which may be empty).
+        if self._last_wide_fmt and result["success"] > 0:
+            from services.attendance_query_service import get_most_recent_attendance_date
+            latest = get_most_recent_attendance_date()
+            if latest:
+                self.date_filter.set_from_ad(latest)
+                self.refresh_tables()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

@@ -149,6 +149,15 @@ def get_attendance_snapshot(ad_date: date_type,
     return result
 
 
+def get_most_recent_attendance_date():
+    """Return the most recent date that has any attendance record,
+    or None if the attendance table is empty."""
+    session = get_session()
+    row = session.query(Attendance.date).order_by(Attendance.date.desc()).first()
+    session.close()
+    return row[0] if row else None
+
+
 def get_student_attendance_history(
     student_id: int,
     join_date: date_type | None = None,
