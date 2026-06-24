@@ -482,7 +482,7 @@ class StudentProfilePage(QWidget):
         self._info_vals["Group"].setText(s.group.name  if s.group  else "—")
 
         history = get_student_attendance_history(
-            student_id, s.join_date, days=None
+            student_id, join_date=None, days=None
         )
         self.att_table.setRowCount(len(history))
         for r, att in enumerate(history):
