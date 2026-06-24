@@ -14,6 +14,7 @@ from models.class_group import Class, Group
 from models.subscription import StudentSubscription, SubscriptionPayment
 from services.subscription_service import (
     get_active_subscription,
+    get_last_subscription,
     get_subscription_history,
     get_outstanding_balance,
     get_payments_for_subscription,
@@ -448,14 +449,42 @@ class SubscriptionsPage(QWidget):
             self.renew_btn.setEnabled(True)
             self._load_payments(sub["id"])
         else:
-            for key in self._sub_info:
-                self._sub_info[key].setText("—")
-            self._paid_card._val.setText("—")
-            self._bal_card._val.setText("—")
-            self._pstat_card._val.setText("No active subscription")
+            # No active subscription — show last expired sub's details so the
+            # user can see when it ended and what balance remains (Bug 3 fix).
+            last = get_last_subscription(self.selected_student_id)
+            if last:
+                self._sub_info["Period (BS)"].setText(
+                    f"{bs_str(last['start_date'])}  →  {bs_str(last['end_date'])}"
+                    "  ⚠ EXPIRED"
+                )
+                self._sub_info["Days"].setText("Expired")
+                self._sub_info["Total Fee"].setText(
+                    f"Rs. {last['total_fee']:,.0f}"
+                )
+                self._paid_card._val.setText(f"Rs. {last['total_paid']:,.0f}")
+                self._bal_card._val.setText(
+                    f"Rs. {last['balance']:,.0f}" if last["balance"] > 0 else "Rs. 0"
+                )
+                self._pstat_card._val.setText("Expired")
+                self._pstat_card._val.setStyleSheet(
+                    f"font-size: 16px; font-weight: bold; color: {STATUS_ABSENT};"
+                    "background: transparent; border: none;"
+                )
+                # Load payments for the last expired sub so history is visible
+                self._load_payments(last["id"])
+            else:
+                for key in self._sub_info:
+                    self._sub_info[key].setText("—")
+                self._paid_card._val.setText("—")
+                self._bal_card._val.setText("—")
+                self._pstat_card._val.setText("No subscription")
+                self._pstat_card._val.setStyleSheet(
+                    "font-size: 16px; font-weight: bold; color: #888888;"
+                    "background: transparent; border: none;"
+                )
+                self.pay_table.setRowCount(0)
             self.add_pay_btn.setEnabled(False)
             self.renew_btn.setEnabled(True)
-            self.pay_table.setRowCount(0)
 
         # Outstanding balance warning
         outstanding = get_outstanding_balance(self.selected_student_id)
@@ -600,8 +629,16 @@ class SubscriptionsPage(QWidget):
         if not self.selected_student_id:
             return
         sub = get_active_subscription(self.selected_student_id)
-        default_start = sub["end_date"] if sub else date.today()
-        previous_due  = sub["balance"]  if sub else 0.0
+        if sub:
+            # Active subscription: start renewal from its end_date, carry balance
+            default_start = sub["end_date"]
+            previous_due  = sub["balance"]
+        else:
+            # No active sub — look at the most recent expired subscription so
+            # we default to the correct end_date and carry any outstanding balance
+            last = get_last_subscription(self.selected_student_id)
+            default_start = last["end_date"] if last else date.today()
+            previous_due  = last["balance"]  if last else 0.0
 
         dlg = RenewDialog(
             self.selected_student_id,

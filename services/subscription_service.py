@@ -38,11 +38,48 @@ def create_subscription(student_id: int, start_date: date,
     return sid
 
 
+def get_last_subscription(student_id: int) -> dict | None:
+    """Return the most recent subscription for a student regardless of status.
+
+    Unlike get_active_subscription(), this never mutates the subscription
+    status and returns even expired records.  Returns None only if the
+    student has no subscriptions at all.
+    """
+    session = get_session()
+    sub = session.query(StudentSubscription).filter_by(
+        student_id=student_id
+    ).order_by(StudentSubscription.start_date.desc()).first()
+    if not sub:
+        session.close()
+        return None
+    total_paid = sum(p.amount_paid for p in sub.payments)
+    pay_status = (
+        "paid"    if total_paid >= sub.total_fee else
+        "partial" if total_paid > 0 else
+        "unpaid"
+    )
+    result = {
+        "id":         sub.id,
+        "start_date": sub.start_date,
+        "end_date":   sub.end_date,
+        "total_fee":  sub.total_fee,
+        "total_paid": total_paid,
+        "balance":    sub.total_fee - total_paid,
+        "days_label": days_remaining_label(sub.end_date),
+        "pay_status": pay_status,
+        "status":     sub.status,
+    }
+    session.close()
+    return result
+
+
 def renew_subscription(student_id: int, start_date: date,
                         duration_months: int, total_fee: float,
                         carry_forward_due: bool = False) -> int:
     if carry_forward_due:
-        sub = get_active_subscription(student_id)
+        # Use last subscription (active OR expired) so carry-forward works
+        # even when the student's subscription has already expired.
+        sub = get_active_subscription(student_id) or get_last_subscription(student_id)
         if sub and sub["balance"] > 0:
             total_fee += sub["balance"]
     return create_subscription(student_id, start_date,
