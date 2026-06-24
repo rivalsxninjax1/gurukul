@@ -19462,3 +19462,4 @@
 2026-06-24 10:11:16,761 [INFO] utils.pdf_to_image: PDF→PNG: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpzo6hl29_.pdf -> /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpapy2pdiv.png (200 dpi)
 2026-06-24 10:11:16,762 [INFO] services.export_service: Student profile image: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpapy2pdiv.png
 2026-06-24 10:11:55,895 [INFO] services.export_service: Teacher profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpmb9kp1ya.pdf
+2026-06-24 19:05:52,389 [INFO] services.backup_service: Database backed up → /Users/sickboi/Desktop/backup/gurukul_backup_20260624_190552.db
