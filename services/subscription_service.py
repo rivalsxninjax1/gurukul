@@ -251,6 +251,83 @@ def add_payment(student_id: int, subscription_id: int,
     return pid
 
 
+def auto_renew_expired_students() -> int:
+    """Called once on app startup.
+
+    For every student who has no active subscription, look at their most
+    recent subscription and keep creating identical ones (same duration,
+    same base fee, no stacking) until the chain reaches a sub whose
+    end_date is in the future (i.e. becomes active today).
+
+    Outstanding balances accumulate naturally across subs and are shown
+    via get_outstanding_balance() — we do NOT add them into the new fee.
+
+    Returns the total number of subscriptions auto-created.
+    """
+    session = get_session()
+    today   = date.today()
+
+    # First pass: mark any active sub that has already passed its end_date
+    stale = session.query(StudentSubscription).filter(
+        StudentSubscription.status == "active",
+        StudentSubscription.end_date < today,
+    ).all()
+    for s in stale:
+        s.status = "expired"
+    if stale:
+        session.commit()
+
+    students = session.query(Student).all()
+    created  = 0
+
+    for student in students:
+        # Check whether this student already has an active sub
+        active = session.query(StudentSubscription).filter_by(
+            student_id=student.id, status="active"
+        ).first()
+        if active:
+            continue
+
+        # No active sub — find the most recent one
+        last = session.query(StudentSubscription).filter_by(
+            student_id=student.id
+        ).order_by(StudentSubscription.start_date.desc()).first()
+        if not last:
+            continue  # never had a subscription; nothing to renew
+
+        # Calculate duration in months from the last subscription
+        duration_months = (
+            (last.end_date.year  - last.start_date.year) * 12
+            + (last.end_date.month - last.start_date.month)
+        )
+        if duration_months < 1:
+            duration_months = 1
+
+        base_fee   = last.total_fee
+        next_start = last.end_date   # chain starts from where last one ended
+
+        # Keep chaining until we land a sub that is still active
+        while next_start < today:
+            next_end = next_start + relativedelta(months=duration_months)
+
+            new_sub = StudentSubscription(
+                student_id = student.id,
+                start_date = next_start,
+                end_date   = next_end,
+                total_fee  = base_fee,
+                status     = "active" if next_end > today else "expired",
+            )
+            session.add(new_sub)
+            created    += 1
+            next_start  = next_end
+
+        session.commit()
+
+    session.close()
+    logger.info(f"auto_renew_expired_students: {created} subscription(s) created.")
+    return created
+
+
 def get_subscription_dashboard_stats() -> dict:
     """Calculate dashboard statistics.
 
