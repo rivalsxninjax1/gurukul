@@ -4,6 +4,7 @@ from PyQt5.QtCore import QObject, QEvent
 from utils.logger import setup_logger
 from database.init_db import initialize_database
 from services.auth_service import create_default_admin
+from services.subscription_service import auto_renew_expired_students
 from ui.login_window import LoginWindow
 from ui.main_window import MainWindow
 
@@ -57,6 +58,7 @@ def main():
     setup_logger()
     initialize_database()
     create_default_admin()
+    auto_renew_expired_students()
 
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
