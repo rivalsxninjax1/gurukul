@@ -432,7 +432,7 @@ def import_attendance_excel(filepath: str, col_map: dict) -> dict:
 
         # Teacher route
         if teacher_id and is_teacher_id:
-            status = "Present" if exit_time else "Incomplete"
+            status = "Present" if (entry_time or exit_time) else "Absent"
             exists = session.query(TeacherAttendance).filter_by(
                 teacher_id=teacher_id, date=date_val
             ).first()
@@ -450,7 +450,7 @@ def import_attendance_excel(filepath: str, col_map: dict) -> dict:
 
         # Student route
         elif student_id and not is_teacher_id:
-            status = "Present" if exit_time else "Incomplete"
+            status = "Present" if (entry_time or exit_time) else "Absent"
             exists = session.query(Attendance).filter_by(
                 student_id=student_id, date=date_val
             ).first()
@@ -468,7 +468,7 @@ def import_attendance_excel(filepath: str, col_map: dict) -> dict:
         # Fallback — try either direction
         if not matched:
             if student_id:
-                status = "Present" if exit_time else "Incomplete"
+                status = "Present" if (entry_time or exit_time) else "Absent"
                 exists = session.query(Attendance).filter_by(
                     student_id=student_id, date=date_val
                 ).first()
@@ -483,7 +483,7 @@ def import_attendance_excel(filepath: str, col_map: dict) -> dict:
                     results["success"] += 1
                 matched = True
             elif teacher_id:
-                status = "Present" if exit_time else "Incomplete"
+                status = "Present" if (entry_time or exit_time) else "Absent"
                 exists = session.query(TeacherAttendance).filter_by(
                     teacher_id=teacher_id, date=date_val
                 ).first()
@@ -771,7 +771,7 @@ def import_attendance_wide_format(filepath: str) -> dict:
 
             # ── Teacher route ─────────────────────────────────────────────────
             if teacher_id and is_teacher_id:
-                status = "Present" if exit_time else "Incomplete"
+                status = "Present" if (entry_time or exit_time) else "Absent"
                 exists = session.query(TeacherAttendance).filter_by(
                     teacher_id=teacher_id, date=ad_date
                 ).first()
@@ -789,7 +789,7 @@ def import_attendance_wide_format(filepath: str) -> dict:
 
             # ── Student route ─────────────────────────────────────────────────
             elif student_id and not is_teacher_id:
-                status = "Present" if exit_time else "Incomplete"
+                status = "Present" if (entry_time or exit_time) else "Absent"
                 exists = session.query(Attendance).filter_by(
                     student_id=student_id, date=ad_date
                 ).first()
@@ -807,7 +807,7 @@ def import_attendance_wide_format(filepath: str) -> dict:
             # ── Fallback: ID prefix doesn't match expected type ───────────────
             if not matched:
                 if student_id:
-                    status = "Present" if exit_time else "Incomplete"
+                    status = "Present" if (entry_time or exit_time) else "Absent"
                     exists = session.query(Attendance).filter_by(
                         student_id=student_id, date=ad_date
                     ).first()
@@ -822,7 +822,7 @@ def import_attendance_wide_format(filepath: str) -> dict:
                         results["success"] += 1
                     matched = True
                 elif teacher_id:
-                    status = "Present" if exit_time else "Incomplete"
+                    status = "Present" if (entry_time or exit_time) else "Absent"
                     exists = session.query(TeacherAttendance).filter_by(
                         teacher_id=teacher_id, date=ad_date
                     ).first()

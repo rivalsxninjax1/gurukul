@@ -55,6 +55,18 @@ def _run_migrations():
 
         conn.commit()
 
+        # DATA MIGRATION: convert historical 'Incomplete' → 'Present'
+        # Any punch recorded means the student was present. Incomplete
+        # was used before the status logic was corrected.
+        result = conn.execute(
+            text("UPDATE attendance SET status = 'Present' "
+                 "WHERE status = 'Incomplete'")
+        )
+        if result.rowcount:
+            print(f"✅ Migration: {result.rowcount} Incomplete "
+                  "attendance records → Present")
+        conn.commit()
+
 
 def _seed_settings():
     from database.connection import get_session

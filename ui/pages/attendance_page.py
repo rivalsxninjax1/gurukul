@@ -215,6 +215,7 @@ class AttendancePage(QWidget):
             "Present: 0", STATUS_PRESENT, STATUS_PRESENT_BG)
         self.badge_incomplete = self._badge(
             "Incomplete: 0", STATUS_INCOMPLETE, STATUS_INCOMPLETE_BG)
+        self.badge_incomplete.hide()   # Incomplete merged into Present
         self.badge_absent     = self._badge(
             "Absent: 0", STATUS_ABSENT, STATUS_ABSENT_BG)
 
