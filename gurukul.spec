@@ -5,18 +5,22 @@
 
 import sys
 import os
-from PyInstaller.utils.hooks import collect_all, collect_submodules
+from PyInstaller.utils.hooks import collect_all
 
 # ── PyMuPDF / fitz ──────────────────────────────────────────────────────────
-# Collect both namespaces: older PyMuPDF exposes 'fitz', newer also 'pymupdf'
+# 'fitz' is the legacy namespace; 'pymupdf' is used in PyMuPDF >= 1.23.
+# Guard the pymupdf collect so older installs don't break the build.
 fitz_datas,   fitz_binaries,   fitz_hiddenimports   = collect_all('fitz')
-pymupdf_datas, pymupdf_binaries, pymupdf_hiddenimports = collect_all('pymupdf')
+try:
+    pymupdf_datas, pymupdf_binaries, pymupdf_hiddenimports = collect_all('pymupdf')
+except Exception:
+    pymupdf_datas, pymupdf_binaries, pymupdf_hiddenimports = [], [], []
 
 # ── Pillow ───────────────────────────────────────────────────────────────────
 pil_datas, pil_binaries, pil_hiddenimports = collect_all('PIL')
 
 # ── Icon guard ───────────────────────────────────────────────────────────────
-# PyInstaller 6.x errors if the icon file is missing, so guard it explicitly.
+# PyInstaller 6.x hard-errors on a missing icon file.
 _icon_path = os.path.join(os.path.dirname(os.path.abspath(SPEC)), 'assets', 'icon.ico')
 _icon = _icon_path if os.path.isfile(_icon_path) else None
 
@@ -118,7 +122,7 @@ a = Analysis(
         'PyQt5.QtNetwork',
         'PyQt5.sip',
 
-        # ── stdlib used at runtime ────────────────────────────────────────────
+        # ── stdlib ────────────────────────────────────────────────────────────
         'shutil',
         'tempfile',
         'logging',
@@ -155,13 +159,13 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,          # disabled — UPX often not present on Windows and causes errors
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,      # no black console window
+    console=False,
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=_icon,         # None if assets/icon.ico not found — skips gracefully
+    icon=_icon,
 )
