@@ -2,7 +2,8 @@ from database.connection import engine, Base
 from models import (
     user, class_group, student, teacher,
     attendance, attendance_raw,
-    subscription, schedule, settings, exam, expense
+    subscription, schedule, settings, exam, expense,
+    deleted_ledger,
 )
 
 
@@ -55,7 +56,24 @@ def _run_migrations():
 
         conn.commit()
 
-        # DATA MIGRATION: convert historical 'Incomplete' → 'Present'
+        # deleted_student_ledger — added in v1.3
+        res = conn.execute(
+            text("SELECT name FROM sqlite_master "
+                 "WHERE type='table' AND name='deleted_student_ledger'")
+        )
+        if not res.fetchone():
+            conn.execute(text("""
+                CREATE TABLE deleted_student_ledger (
+                    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                    student_name        VARCHAR(150) NOT NULL,
+                    student_user_id     VARCHAR(50)  NOT NULL,
+                    revenue_preserved   FLOAT NOT NULL DEFAULT 0.0,
+                    pending_written_off FLOAT NOT NULL DEFAULT 0.0,
+                    deleted_at          DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            conn.commit()
+            print("✅ Migration: deleted_student_ledger table created")
         # Any punch recorded means the student was present. Incomplete
         # was used before the status logic was corrected.
         result = conn.execute(

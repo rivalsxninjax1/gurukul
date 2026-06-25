@@ -186,6 +186,49 @@ def get_subscription_history(student_id: int) -> list:
     return result
 
 
+def get_student_financial_summary(student_id: int) -> dict:
+    """Return total paid and total pending for a student across all their subs."""
+    session = get_session()
+    subs    = session.query(StudentSubscription).filter_by(
+        student_id=student_id
+    ).all()
+    total_paid    = 0.0
+    total_pending = 0.0
+    for sub in subs:
+        paid     = sum(p.amount_paid for p in sub.payments)
+        total_paid    += paid
+        total_pending += max(0.0, sub.total_fee - paid)
+    session.close()
+    return {"paid": total_paid, "pending": total_pending}
+
+
+def record_deleted_student(student_name: str, student_user_id: str,
+                            revenue_preserved: float,
+                            pending_written_off: float) -> None:
+    """Write a ledger entry before a student is deleted."""
+    from models.deleted_ledger import DeletedStudentLedger
+    session = get_session()
+    session.add(DeletedStudentLedger(
+        student_name        = student_name,
+        student_user_id     = student_user_id,
+        revenue_preserved   = revenue_preserved,
+        pending_written_off = pending_written_off,
+    ))
+    session.commit()
+    session.close()
+
+
+def get_deleted_ledger_totals() -> dict:
+    """Return cumulative revenue and pending written off from deleted students."""
+    from models.deleted_ledger import DeletedStudentLedger
+    session = get_session()
+    entries = session.query(DeletedStudentLedger).all()
+    revenue = sum(e.revenue_preserved   for e in entries)
+    pending = sum(e.pending_written_off for e in entries)
+    session.close()
+    return {"revenue": revenue, "pending_written_off": pending}
+
+
 def get_outstanding_balance(student_id: int) -> float:
     session = get_session()
     subs    = session.query(StudentSubscription).filter_by(
@@ -391,6 +434,14 @@ def get_subscription_dashboard_stats() -> dict:
     except Exception:
         session.rollback()
     session.close()
+
+    # Add revenue from deleted students; subtract their written-off pending
+    ledger = get_deleted_ledger_totals()
+    total_revenue += ledger["revenue"]
+    total_pending -= ledger["pending_written_off"]
+    if total_pending < 0:
+        total_pending = 0.0
+
     return {
         "active":        active_count,
         "expired":       expired_count,
