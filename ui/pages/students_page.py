@@ -13,7 +13,8 @@ from sqlalchemy import or_
 from services.subscription_service import (
     create_subscription, get_student_subscription_flags,
     get_active_subscription, update_subscription_fee,
-    update_subscription_dates
+    update_subscription_dates, get_student_financial_summary,
+    record_deleted_student,
 )
 from services.id_service import generate_student_id
 from services.export_service import export_student_list_pdf
@@ -369,20 +370,67 @@ class StudentsPage(QWidget):
             bus.student_saved.emit()
 
     def delete_student(self, student_id):
-        if QMessageBox.question(
-            self, "Confirm Delete",
-            "Delete this student and all their records? This cannot be undone.",
-            QMessageBox.Yes | QMessageBox.No
-        ) == QMessageBox.Yes:
-            session = get_session()
-            s = session.query(Student).get(student_id)
-            if s:
-                session.delete(s)
-                session.commit()
+        session  = get_session()
+        student  = session.query(Student).get(student_id)
+        if not student:
             session.close()
-            self.refresh_table()
-            self.toast.success("Student deleted.")
-            bus.student_saved.emit()
+            return
+
+        name     = student.name
+        user_id  = student.user_id
+        session.close()
+
+        # Calculate what the student has paid vs. what they still owe
+        summary = get_student_financial_summary(student_id)
+        paid    = summary["paid"]
+        pending = summary["pending"]
+
+        # Build an informative confirmation message
+        if pending > 0:
+            detail = (
+                f"\n\nFinancial summary for {name}:"
+                f"\n  • Total paid  :  Rs. {paid:,.0f}  (kept in revenue)"
+                f"\n  • Pending due :  Rs. {pending:,.0f}  (will be written off)"
+                f"\n\nThe outstanding amount will be subtracted from pending dues."
+            )
+        else:
+            detail = (
+                f"\n\nFinancial summary for {name}:"
+                f"\n  • Total paid  :  Rs. {paid:,.0f}  (kept in revenue)"
+                f"\n  • No outstanding balance."
+            )
+
+        reply = QMessageBox.question(
+            self,
+            "Confirm Delete",
+            f"Delete {name} and all their records? This cannot be undone.{detail}",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        # Record to ledger BEFORE the student row (and cascaded records) is deleted
+        record_deleted_student(
+            student_name        = name,
+            student_user_id     = user_id,
+            revenue_preserved   = paid,
+            pending_written_off = pending,
+        )
+
+        session = get_session()
+        s = session.query(Student).get(student_id)
+        if s:
+            session.delete(s)
+            session.commit()
+        session.close()
+
+        self.refresh_table()
+        self.toast.success(
+            f"{name} deleted. "
+            f"Rs. {paid:,.0f} kept in revenue"
+            + (f", Rs. {pending:,.0f} pending written off." if pending > 0 else ".")
+        )
+        bus.student_saved.emit()
 
 
 class StudentDialog(QDialog):
