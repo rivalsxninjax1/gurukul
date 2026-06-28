@@ -480,7 +480,8 @@ def generate_payment_receipt(payment_id: int, output_path: str,
                               centre_name: str = "GURUKUL ACADEMY AND TRAINING CENTER",
                               centre_address: str = "Biratnagar-1, Bhatta Chowk"):
     """
-    Compact A6 receipt with PNG logo + full institution branding.
+    Compact receipt with PNG logo + full institution branding.
+    Uses A6 width with dynamic height so exam results never overflow.
     """
     from reportlab.pdfgen import canvas as pdf_canvas
     from reportlab.lib.pagesizes import A6
@@ -517,8 +518,41 @@ def generate_payment_receipt(payment_id: int, output_path: str,
         if exams:
             latest_exam = exams[0]
 
-    W, H = A6
-    c = pdf_canvas.Canvas(output_path, pagesize=A6)
+    A6_W, A6_H = A6
+    W = A6_W
+
+    # ── Pre-calculate total content height so canvas is never clipped ─────────
+    # Each section_title ≈ 18 pts, each line_kv ≈ 14 pts
+    SECTION_H = 18
+    KV_H      = 14
+    HEADER_H  = 36 + 10 + 13 + 13 + 12 + 16 + 20  # logo + name + addr + "Receipt" + rule + gap
+
+    n_rows = 2          # student: name + user_id
+    n_rows += 2         # subscription: period + fee
+    n_rows += 2 + (1 if p.note else 0)  # payment: date + method + optional note
+    n_sections = 3
+
+    if attendance_stats:
+        n_rows += 3
+        n_sections += 1
+
+    exam_subj_count = 0
+    if latest_exam:
+        subjects = latest_exam.get("subjects", [])
+        exam_subj_count = min(len(subjects), 3)
+        if len(subjects) > 3:
+            exam_subj_count += 1   # "More subjects" line
+        n_rows += exam_subj_count
+        n_sections += 1
+
+    AMOUNT_H  = 6 + 16 + 4 + 14   # separator + bold amount + line + balance row
+    FOOTER_H  = 30
+
+    total_h = HEADER_H + (n_sections * SECTION_H) + (n_rows * KV_H) + AMOUNT_H + FOOTER_H + 20
+    # Never smaller than A6
+    H = max(A6_H, total_h)
+
+    c = pdf_canvas.Canvas(output_path, pagesize=(W, H))
 
     # ── Header: Logo + Institution name ──────────────────────────────────────
     logo_path  = get_logo_path()
@@ -527,7 +561,6 @@ def generate_payment_receipt(payment_id: int, output_path: str,
         try:
             logo_h = 36
             logo_w = 36
-            # Keep aspect ratio using PIL
             from PIL import Image as PILImage
             with PILImage.open(logo_path) as img:
                 iw, ih = img.size
@@ -609,7 +642,7 @@ def generate_payment_receipt(payment_id: int, output_path: str,
         for label, key in [
             ("Working Days", "working_days"),
             ("Present Days", "present"),
-            ("Absent Days", "absent"),
+            ("Absent Days",  "absent"),
         ]:
             line_kv(label, attendance_stats.get(key, 0))
 
@@ -620,7 +653,7 @@ def generate_payment_receipt(payment_id: int, output_path: str,
             marks = "—" if subj["marks"] is None else str(subj["marks"])
             line_kv(subj["subject"], f"{marks} / {subj['full']}")
         if len(subjects) > 3:
-            line_kv("More Subjects", "See profile for details")
+            line_kv("More Subjects", "See full profile for details")
 
     # Prominent amount
     y -= 6
