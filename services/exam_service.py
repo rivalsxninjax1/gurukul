@@ -102,18 +102,16 @@ def save_result(student_id: int, exam_id: int,
 
 def get_results_for_student(student_id: int,
                             join_date: date_type | None = None) -> list:
-    """Returns grouped results by exam (optionally filtered by join date)."""
+    """Returns grouped results by exam for a student.
+    join_date parameter kept for backward compatibility but no longer
+    filters exams — a student may have results for an exam created
+    before their join date (e.g. catch-up exam or backdated entry).
+    Only exams where the student has at least one mark entered are
+    shown as has_results=True."""
     session = get_session()
     exams = session.query(Exam).order_by(Exam.created_at.desc()).all()
     output = []
     for exam in exams:
-        if join_date and exam.created_at:
-            try:
-                exam_day = exam.created_at.date()
-            except Exception:
-                exam_day = None
-            if exam_day and exam_day < join_date:
-                continue
         subjects_data = []
         total_full   = 0
         total_scored = 0
