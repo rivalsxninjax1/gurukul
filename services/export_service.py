@@ -255,21 +255,20 @@ def export_student_profile_pdf(student_id: int, filepath: str,
     cur  = analytics["current"]
     prev = analytics["previous"]
     att_data = [
-        ["BS Month", "Working Days", "Present",
-         "Absent", "Incomplete", "Holiday"],
+        ["BS Month", "Working Days", "Present", "Absent", "Holiday"],
         [
             f"{bs_month_name(cur['bs_month'])} {cur['bs_year']}",
             str(cur["working_days"]), str(cur["present"]),
-            str(cur["absent"]), str(cur["incomplete"]), str(cur["holiday"]),
+            str(cur["absent"]), str(cur["holiday"]),
         ],
         [
             f"{bs_month_name(prev['bs_month'])} {prev['bs_year']}",
             str(prev["working_days"]), str(prev["present"]),
-            str(prev["absent"]), str(prev["incomplete"]), str(prev["holiday"]),
+            str(prev["absent"]), str(prev["holiday"]),
         ],
     ]
     att_t = Table(att_data,
-                  colWidths=[4*cm, 3*cm, 2.5*cm, 2.5*cm, 3*cm, 2.5*cm])
+                  colWidths=[4*cm, 3.5*cm, 3*cm, 3*cm, 3*cm])
     att_t.setStyle(TBL_STYLE)
     content.append(att_t)
     content.append(Spacer(1, 12))
@@ -407,8 +406,7 @@ def export_teacher_profile_pdf(teacher_id: int, filepath: str,
     content.append(Spacer(1, 12))
 
     # Attendance summary (two months)
-    att_rows = [["BS Month", "Working Days", "Present",
-                 "Absent", "Incomplete", "Holiday"]]
+    att_rows = [["BS Month", "Working Days", "Present", "Absent", "Holiday"]]
     for key in ("current", "previous"):
         stats = analytics.get(key) if analytics else None
         if not stats or not stats.get("bs_month"):
@@ -419,13 +417,12 @@ def export_teacher_profile_pdf(teacher_id: int, filepath: str,
             str(stats.get("working_days", 0)),
             str(stats.get("present", 0)),
             str(stats.get("absent", 0)),
-            str(stats.get("incomplete", 0)),
             str(stats.get("holiday", 0)),
         ])
     if len(att_rows) > 1:
         content.append(Paragraph("Attendance Summary", SECTION_STYLE))
         att_t = Table(att_rows,
-                      colWidths=[4*cm, 3*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm])
+                      colWidths=[4*cm, 3.5*cm, 3*cm, 3*cm, 3*cm])
         att_t.setStyle(TBL_STYLE)
         content.append(att_t)
         content.append(Spacer(1, 12))
