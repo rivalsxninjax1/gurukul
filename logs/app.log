@@ -19463,3 +19463,18 @@
 2026-06-24 10:11:16,762 [INFO] services.export_service: Student profile image: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpapy2pdiv.png
 2026-06-24 10:11:55,895 [INFO] services.export_service: Teacher profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpmb9kp1ya.pdf
 2026-06-24 19:05:52,389 [INFO] services.backup_service: Database backed up → /Users/sickboi/Desktop/backup/gurukul_backup_20260624_190552.db
+2026-06-25 06:25:56,031 [INFO] services.subscription_service: auto_renew_expired_students: 0 subscription(s) created.
+2026-06-25 06:33:15,250 [INFO] services.subscription_service: auto_renew_expired_students: 0 subscription(s) created.
+2026-06-25 06:33:34,304 [INFO] services.backup_service: Database backed up → /Users/sickboi/Desktop/gurukul/gurukul_backup_20260625_063334.db
+2026-06-28 17:11:55,881 [INFO] services.subscription_service: auto_renew_expired_students: 1 subscription(s) created.
+2026-06-28 17:13:19,984 [INFO] services.export_service: Student profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmp4dyieavq.pdf
+2026-06-28 17:13:20,397 [INFO] utils.pdf_to_image: PDF→PNG: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmp4dyieavq.pdf -> /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmp2qinl6mn.png (200 dpi)
+2026-06-28 17:13:20,397 [INFO] services.export_service: Student profile image: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmp2qinl6mn.png
+2026-06-28 17:14:04,511 [INFO] utils.pdf_to_image: PDF→PNG: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpemij7um8.pdf -> /Users/sickboi/Desktop/gurukul/receipt_1.png (300 dpi)
+2026-06-28 17:14:04,512 [INFO] services.subscription_service: Payment receipt image: /Users/sickboi/Desktop/gurukul/receipt_1.png
+2026-06-28 17:15:31,291 [INFO] services.export_service: Student profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpqjigcjfo.pdf
+2026-06-28 17:15:31,530 [INFO] utils.pdf_to_image: PDF→PNG: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpqjigcjfo.pdf -> /Users/sickboi/Desktop/gurukul/student_profile_46.png (200 dpi)
+2026-06-28 17:15:31,530 [INFO] services.export_service: Student profile image: /Users/sickboi/Desktop/gurukul/student_profile_46.png
+2026-06-28 17:15:37,349 [INFO] services.export_service: Student profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpmcdhq1a5.pdf
+2026-06-28 17:15:37,527 [INFO] utils.pdf_to_image: PDF→PNG: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpmcdhq1a5.pdf -> /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpq9q41ncy.png (200 dpi)
+2026-06-28 17:15:37,527 [INFO] services.export_service: Student profile image: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpq9q41ncy.png
