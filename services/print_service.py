@@ -815,6 +815,8 @@ def get_receipt_html(payment_id: int) -> str:
     bal      = max(0, sub.total_fee - sub_paid) if sub else 0
     pdate    = bs_str(p.payment_date)
     created  = str(p.created_at)[:16] if p.created_at else today_bs()
+    class_name = s.class_.name if (s and s.class_) else "—"
+    group_name = s.group.name  if (s and s.group)  else "—"
     session.close()
 
     # Attendance + exam context (two recent BS months + last exam snapshot)
@@ -831,7 +833,8 @@ def get_receipt_html(payment_id: int) -> str:
         for key, label in (("current", "Current Month"),
                            ("previous", "Previous Month")):
             stats = analytics.get(key) if analytics else None
-            if not stats or not stats.get("bs_month"):
+            if not stats or not stats.get("bs_month") \
+                    or not stats.get("working_days"):
                 continue
             month_label = f"{bs_month_name(stats['bs_month'])} {stats.get('bs_year', '')}".strip()
             rows_html.append(
@@ -848,6 +851,13 @@ def get_receipt_html(payment_id: int) -> str:
                 "<tr><th>Month</th><th>Working</th><th>Present</th><th>Absent</th></tr></thead><tbody>"
                 f"{''.join(rows_html)}"
                 "</tbody></table></div>"
+            )
+        else:
+            attendance_rows = (
+                "<div style='margin-top:10px;'>"
+                "<strong style='font-size:11px;color:#555555;'>Attendance</strong>"
+                "<p style='margin:4px 0 0 0;font-size:11px;color:#777777;'>"
+                "No attendance recorded.</p></div>"
             )
 
         exam_data = [
@@ -916,21 +926,13 @@ def get_receipt_html(payment_id: int) -> str:
   </div>
 
   <div class="profile-card">
-    <h4>Subscription</h4>
+    <h4>Class &amp; Group</h4>
     <table class="kv-table"><tbody>
+      <tr><td class="key">Class</td>
+          <td class="val"><strong>{class_name}</strong></td></tr>
+      <tr><td class="key">Group</td>
+          <td class="val"><strong>{group_name}</strong></td></tr>
 """
-    if sub:
-        h += f"""
-      <tr><td class="key">Period (BS)</td>
-          <td class="val">{bs_str(sub.start_date)} → {bs_str(sub.end_date)}</td></tr>
-      <tr><td class="key">Total Fee</td>
-          <td class="val">Rs. {sub.total_fee:,.0f}</td></tr>
-      <tr><td class="key">Status</td>
-          <td class="val">{sub.status.capitalize()}</td></tr>
-"""
-    else:
-        h += '<tr><td colspan="2">Subscription not found.</td></tr>'
-
     h += """
     </tbody></table>
   </div>

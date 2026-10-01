@@ -1,8 +1,9 @@
+import datetime
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QLineEdit, QDialog,
     QComboBox, QMessageBox, QHeaderView, QFrame,
-    QDoubleSpinBox, QSpinBox, QScrollArea, QFileDialog
+    QDoubleSpinBox, QSpinBox, QScrollArea, QFileDialog, QCheckBox
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
@@ -11,7 +12,8 @@ from models.student import Student
 from models.class_group import Class, Group
 from sqlalchemy import or_
 from services.subscription_service import (
-    create_subscription, get_student_subscription_flags,
+    create_subscription, create_initial_subscription,
+    get_student_subscription_flags,
     get_active_subscription, update_subscription_fee,
     update_subscription_dates, get_student_financial_summary,
     record_deleted_student,
@@ -19,7 +21,7 @@ from services.subscription_service import (
 from services.id_service import generate_student_id
 from services.export_service import export_student_list_pdf
 from services.settings_service import get_setting
-from utils.bs_converter import bs_to_ad
+from utils.bs_converter import bs_to_ad, bs_str, bs_month_end_ad, prorated_fee
 from ui.bs_widgets import BSDateEdit
 from ui.styles import (
     BTN_PRIMARY, BTN_DANGER, BTN_SECONDARY,
@@ -553,27 +555,66 @@ class StudentDialog(QDialog):
             sep.setStyleSheet("background: #eeeeee; border: none;")
             fl.addWidget(sep)
 
-            sub_lbl = QLabel("INITIAL SUBSCRIPTION")
+            sub_lbl = QLabel("MONTHLY FEE & FIRST PERIOD")
             sub_lbl.setStyleSheet(SECTION_LABEL_STYLE)
             fl.addWidget(sub_lbl)
 
-            self.duration_spin = QSpinBox()
-            self.duration_spin.setRange(1, 24)
-            self.duration_spin.setValue(1)
-            self.duration_spin.setSuffix("  month(s)")
-            self.duration_spin.setStyleSheet(SPINBOX_STYLE)
-            self.duration_spin.setFixedHeight(36)
+            self.monthly_fee_spin = QDoubleSpinBox()
+            self.monthly_fee_spin.setRange(0, 999999)
+            self.monthly_fee_spin.setValue(2000)
+            self.monthly_fee_spin.setPrefix("Rs. ")
+            self.monthly_fee_spin.setDecimals(0)
+            self.monthly_fee_spin.setStyleSheet(SPINBOX_STYLE)
+            self.monthly_fee_spin.setFixedHeight(36)
+            field("Monthly Fee (automatic subscription, 1st to last day of "
+                  "each Nepali month)", self.monthly_fee_spin)
 
-            self.fee_spin = QDoubleSpinBox()
-            self.fee_spin.setRange(0, 999999)
-            self.fee_spin.setValue(2000)
-            self.fee_spin.setPrefix("Rs. ")
-            self.fee_spin.setDecimals(0)
-            self.fee_spin.setStyleSheet(SPINBOX_STYLE)
-            self.fee_spin.setFixedHeight(36)
+            self.custom_first_chk = QCheckBox(
+                "Custom first period (set start date, end date and amount)"
+            )
+            fl.addWidget(self.custom_first_chk)
 
-            field("Duration",  self.duration_spin)
-            field("Total Fee", self.fee_spin)
+            self.first_box = QWidget()
+            fb = QVBoxLayout(self.first_box)
+            fb.setContentsMargins(0, 4, 0, 0)
+            fb.setSpacing(4)
+            self.first_start_input = BSDateEdit()
+            self.first_end_input   = BSDateEdit()
+            self.first_fee_spin = QDoubleSpinBox()
+            self.first_fee_spin.setRange(0, 999999)
+            self.first_fee_spin.setPrefix("Rs. ")
+            self.first_fee_spin.setDecimals(0)
+            self.first_fee_spin.setStyleSheet(SPINBOX_STYLE)
+            self.first_fee_spin.setFixedHeight(36)
+            for txt, w in (("First Period Start (BS)", self.first_start_input),
+                           ("First Period End (BS)",   self.first_end_input),
+                           ("First Period Amount",     self.first_fee_spin)):
+                l = QLabel(txt)
+                l.setStyleSheet(FORM_LABEL_STYLE)
+                fb.addWidget(l)
+                fb.addWidget(w)
+            self.first_box.hide()
+            fl.addWidget(self.first_box)
+
+            self.first_note = QLabel("")
+            self.first_note.setWordWrap(True)
+            self.first_note.setStyleSheet(
+                "font-size: 12px; color: #666666;"
+                "background: transparent; border: none;"
+            )
+            fl.addWidget(self.first_note)
+
+            self.custom_first_chk.toggled.connect(self._on_custom_first_toggled)
+            self.join_date_input.dateChanged.connect(
+                lambda *_: self._refresh_first_period()
+            )
+            self.monthly_fee_spin.valueChanged.connect(
+                lambda *_: self._refresh_first_period()
+            )
+            self.first_end_input.dateChanged.connect(
+                lambda *_: self._refresh_first_period()
+            )
+            self._refresh_first_period()
         else:
             sep = QFrame()
             sep.setFrameShape(QFrame.HLine)
@@ -592,7 +633,17 @@ class StudentDialog(QDialog):
             self.active_fee_spin.setStyleSheet(SPINBOX_STYLE)
             self.active_fee_spin.setFixedHeight(36)
 
-            field("Total Fee", self.active_fee_spin)
+            field("Total Fee (this period)", self.active_fee_spin)
+
+            self.monthly_fee_spin = QDoubleSpinBox()
+            self.monthly_fee_spin.setRange(0, 999999)
+            self.monthly_fee_spin.setValue(0)
+            self.monthly_fee_spin.setPrefix("Rs. ")
+            self.monthly_fee_spin.setDecimals(0)
+            self.monthly_fee_spin.setStyleSheet(SPINBOX_STYLE)
+            self.monthly_fee_spin.setFixedHeight(36)
+            field("Monthly Fee (used by automatic subscription)",
+                  self.monthly_fee_spin)
 
             self.active_start_input = BSDateEdit()
             self.active_start_input.set_today()
@@ -632,6 +683,47 @@ class StudentDialog(QDialog):
         br.addWidget(save)
         root.addWidget(footer)
 
+    def _on_custom_first_toggled(self, checked):
+        self.first_box.setVisible(checked)
+        if checked:
+            join = self.join_date_input.get_ad_date()
+            if join:
+                self.first_start_input.set_from_ad(join)
+                end = bs_month_end_ad(join)
+                self.first_end_input.set_from_ad(end)
+                self.first_fee_spin.setValue(
+                    prorated_fee(self.monthly_fee_spin.value(), join, end)
+                )
+        self._refresh_first_period()
+
+    def _refresh_first_period(self):
+        """Update the explanation under the monthly-fee field."""
+        if not hasattr(self, "first_note"):
+            return
+        join = self.join_date_input.get_ad_date()
+        if not join:
+            self.first_note.setText("")
+            return
+        monthly = self.monthly_fee_spin.value()
+        if self.custom_first_chk.isChecked():
+            end = self.first_end_input.get_ad_date()
+            if end:
+                self.first_note.setText(
+                    f"After the first period, the automatic subscription "
+                    f"starts on {bs_str(end + datetime.timedelta(days=1))} "
+                    f"at Rs. {monthly:,.0f} per Nepali month."
+                )
+            return
+        end  = bs_month_end_ad(join)
+        days = (end - join).days + 1
+        fee  = prorated_fee(monthly, join, end)
+        self.first_note.setText(
+            f"First period (automatic): {bs_str(join)} → {bs_str(end)} "
+            f"({days} days) = Rs. {fee:,.0f}. Monthly fee of "
+            f"Rs. {monthly:,.0f} then starts on "
+            f"{bs_str(end + datetime.timedelta(days=1))}."
+        )
+
     def _load_groups(self):
         class_id = self.class_combo.currentData()
         self.group_combo.clear()
@@ -655,6 +747,7 @@ class StudentDialog(QDialog):
         whatsapp       = s.whatsapp_number or ""
         dob, jd        = s.dob, s.join_date
         cid, gid       = s.class_id, s.group_id
+        mfee           = s.monthly_fee
         session.close()
 
         self.id_display.setText(uid)
@@ -680,6 +773,10 @@ class StudentDialog(QDialog):
                 self.group_combo.setCurrentIndex(idx)
 
         active_sub = get_active_subscription(self.student_id)
+        self.monthly_fee_spin.setValue(
+            mfee if mfee is not None
+            else (active_sub["total_fee"] if active_sub else 0)
+        )
         if active_sub:
             self._active_sub_id  = active_sub["id"]
             self._original_fee   = active_sub["total_fee"]
@@ -739,6 +836,38 @@ class StudentDialog(QDialog):
                 )
                 return
 
+        first_start = first_end = first_fee = None
+        if not self.student_id and self.custom_first_chk.isChecked():
+            first_start = self.first_start_input.get_ad_date()
+            first_end   = self.first_end_input.get_ad_date()
+            first_fee   = self.first_fee_spin.value()
+            if not first_start or not first_end:
+                QMessageBox.warning(
+                    self, "Validation",
+                    "First period Start/End Date (BS) is invalid."
+                )
+                return
+            if first_end < first_start:
+                QMessageBox.warning(
+                    self, "Validation",
+                    "First period End Date cannot be before Start Date."
+                )
+                return
+            if first_end != bs_month_end_ad(first_end):
+                nxt = first_end + datetime.timedelta(days=1)
+                bridge_end = bs_month_end_ad(nxt)
+                ans = QMessageBox.question(
+                    self, "End date is not the last day of the month",
+                    f"The first period ends on {bs_str(first_end)}, which is "
+                    f"not the last day of the Nepali month.\n\n"
+                    f"The system will add a prorated period from "
+                    f"{bs_str(nxt)} to {bs_str(bridge_end)} before regular "
+                    f"monthly billing starts.\n\nContinue?",
+                    QMessageBox.Yes | QMessageBox.No,
+                )
+                if ans != QMessageBox.Yes:
+                    return
+
         session = get_session()
         if self.student_id:
             s = session.query(Student).get(self.student_id)
@@ -765,6 +894,8 @@ class StudentDialog(QDialog):
         s.group_id        = self.group_combo.currentData()
         s.dob             = dob_ad
         s.join_date       = join_ad
+        if self.student_id:
+            s.monthly_fee = self.monthly_fee_spin.value()
 
         session.commit()
         self.saved_student_id = s.id
@@ -772,11 +903,13 @@ class StudentDialog(QDialog):
         session.close()
 
         if not self.student_id:
-            create_subscription(
-                student_id      = sid,
-                start_date      = join_ad,
-                duration_months = self.duration_spin.value(),
-                total_fee       = self.fee_spin.value(),
+            create_initial_subscription(
+                student_id  = sid,
+                join_date   = join_ad,
+                monthly_fee = self.monthly_fee_spin.value(),
+                first_start = first_start,
+                first_end   = first_end,
+                first_fee   = first_fee,
             )
         else:
             if self._active_sub_id is not None:

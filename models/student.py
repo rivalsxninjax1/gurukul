@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from database.connection import Base
 
@@ -16,6 +16,7 @@ class Student(Base):
     whatsapp_number  = Column(String(20))
     join_date        = Column(Date)
     photo_path       = Column(String(300))
+    monthly_fee      = Column(Float)   # fee used by the automatic monthly subscription
     class_id         = Column(Integer, ForeignKey("classes.id"))
     group_id         = Column(Integer, ForeignKey("groups.id"))
 

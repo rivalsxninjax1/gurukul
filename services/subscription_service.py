@@ -3,7 +3,10 @@ from dateutil.relativedelta import relativedelta
 from database.connection import get_session
 from models.subscription import StudentSubscription, SubscriptionPayment
 from models.student import Student
-from utils.bs_converter import days_remaining_label, bs_str
+from utils.bs_converter import (
+    days_remaining_label, bs_str, ad_to_bs,
+    bs_month_end_ad, prorated_fee,
+)
 from services.attendance_analytics_service import (
     get_two_month_analytics, bs_month_name
 )
@@ -294,23 +297,110 @@ def add_payment(student_id: int, subscription_id: int,
     return pid
 
 
+def create_initial_subscription(student_id: int, join_date: date,
+                                monthly_fee: float,
+                                first_start: date | None = None,
+                                first_end: date | None = None,
+                                first_fee: float | None = None) -> int:
+    """Create the FIRST subscription period for a newly registered student.
+
+    * Custom first period (first_start/first_end/first_fee given):
+      exactly those dates and that amount are used.
+    * Otherwise: join date -> last day of that Nepali month, with the
+      monthly fee prorated by number of days (a join on the 1st pays the
+      full monthly fee).
+
+    The student's monthly_fee is stored; the automatic subscription starts
+    the day after the first period ends and uses the monthly fee.
+    """
+    if first_start and first_end:
+        start, end = first_start, first_end
+        fee = float(first_fee if first_fee is not None else 0.0)
+    else:
+        start = join_date
+        end   = bs_month_end_ad(join_date)
+        fee   = prorated_fee(monthly_fee, start, end)
+
+    session = get_session()
+    student = session.query(Student).get(student_id)
+    if student is not None:
+        student.monthly_fee = float(monthly_fee)
+    sub = StudentSubscription(
+        student_id = student_id,
+        start_date = start,
+        end_date   = end,
+        total_fee  = fee,
+        status     = "active" if end >= date.today() else "expired",
+    )
+    session.add(sub)
+    session.commit()
+    sid = sub.id
+    # If the first period is already in the past, catch up right away.
+    if end < date.today() and student is not None:
+        _chain_renewals(session, student, date.today())
+        session.commit()
+    session.close()
+    return sid
+
+
+def _chain_renewals(session, student, today: date) -> int:
+    """Create every missing Nepali-month period for one student up to today.
+
+    The next period always starts the day after the previous one ended.
+    * If that day is the 1st of a Nepali month -> full month, full fee.
+    * Otherwise (old students on rolling cycles, or a custom first period
+      that stopped mid-month) -> ONE bridge period up to the last day of
+      that Nepali month, fee = monthly fee x days / days in month.
+    After that every period is a whole Nepali month at the monthly fee.
+    """
+    last = session.query(StudentSubscription).filter_by(
+        student_id=student.id
+    ).order_by(StudentSubscription.start_date.desc(),
+               StudentSubscription.id.desc()).first()
+    if not last:
+        return 0
+
+    monthly = student.monthly_fee
+    if monthly is None:
+        monthly = last.total_fee
+        student.monthly_fee = monthly
+
+    created    = 0
+    next_start = last.end_date + timedelta(days=1)
+    while next_start <= today:
+        next_end = bs_month_end_ad(next_start)
+        _, _, bs_day = ad_to_bs(next_start)
+        fee = float(round(monthly)) if bs_day == 1 else prorated_fee(
+            monthly, next_start, next_end
+        )
+        session.add(StudentSubscription(
+            student_id = student.id,
+            start_date = next_start,
+            end_date   = next_end,
+            total_fee  = fee,
+            status     = "active" if next_end >= today else "expired",
+        ))
+        created   += 1
+        next_start = next_end + timedelta(days=1)
+    return created
+
+
 def auto_renew_expired_students() -> int:
     """Called once on app startup.
 
-    For every student who has no active subscription, look at their most
-    recent subscription and keep creating identical ones (same duration,
-    same base fee, no stacking) until the chain reaches a sub whose
-    end_date is in the future (i.e. becomes active today).
+    For every student with no active subscription, keep creating Nepali-
+    month periods (1st to last day of the BS month) at the student's
+    monthly fee until one covers today.  Old students on rolling cycles
+    get a single prorated bridge period first (see _chain_renewals).
 
-    Outstanding balances accumulate naturally across subs and are shown
-    via get_outstanding_balance() — we do NOT add them into the new fee.
+    Outstanding balances stay on their own periods and are shown via
+    get_outstanding_balance() — they are never added into a new fee.
 
     Returns the total number of subscriptions auto-created.
     """
     session = get_session()
     today   = date.today()
 
-    # First pass: mark any active sub that has already passed its end_date
     stale = session.query(StudentSubscription).filter(
         StudentSubscription.status == "active",
         StudentSubscription.end_date < today,
@@ -320,50 +410,14 @@ def auto_renew_expired_students() -> int:
     if stale:
         session.commit()
 
-    students = session.query(Student).all()
-    created  = 0
-
-    for student in students:
-        # Check whether this student already has an active sub
+    created = 0
+    for student in session.query(Student).all():
         active = session.query(StudentSubscription).filter_by(
             student_id=student.id, status="active"
         ).first()
         if active:
             continue
-
-        # No active sub — find the most recent one
-        last = session.query(StudentSubscription).filter_by(
-            student_id=student.id
-        ).order_by(StudentSubscription.start_date.desc()).first()
-        if not last:
-            continue  # never had a subscription; nothing to renew
-
-        # Calculate duration in months from the last subscription
-        duration_months = (
-            (last.end_date.year  - last.start_date.year) * 12
-            + (last.end_date.month - last.start_date.month)
-        )
-        if duration_months < 1:
-            duration_months = 1
-
-        base_fee   = last.total_fee
-        next_start = last.end_date   # chain starts from where last one ended
-
-        # Keep chaining until we land a sub that is still active
-        while next_start < today:
-            next_end = next_start + relativedelta(months=duration_months)
-
-            new_sub = StudentSubscription(
-                student_id = student.id,
-                start_date = next_start,
-                end_date   = next_end,
-                total_fee  = base_fee,
-                status     = "active" if next_end > today else "expired",
-            )
-            session.add(new_sub)
-            created    += 1
-            next_start  = next_end
-
+        created += _chain_renewals(session, student, today)
         session.commit()
 
     session.close()
@@ -499,18 +553,18 @@ def generate_payment_receipt(payment_id: int, output_path: str,
     sub_paid = sum(x.amount_paid for x in sub.payments) if sub else 0
     bal      = (sub.total_fee - sub_paid) if sub else 0
     pdate    = bs_str(p.payment_date)
+    class_name = s.class_.name if (s and s.class_) else "—"
+    group_name = s.group.name  if (s and s.group)  else "—"
     session.close()
 
-    attendance_stats = None
+    attendance_months = []      # up to two months, most recent first
     latest_exam = None
     if s:
         attendance = get_two_month_analytics(s.id, s.join_date)
-        if attendance:
-            for key in ("current", "previous"):
-                stats = attendance.get(key)
-                if stats and stats.get("bs_month"):
-                    attendance_stats = stats
-                    break
+        for key in ("current", "previous"):
+            stats = (attendance or {}).get(key)
+            if stats and stats.get("bs_month"):
+                attendance_months.append(stats)
         exams = [
             e for e in get_results_for_student(s.id, s.join_date)
             if e["has_results"]
@@ -528,13 +582,13 @@ def generate_payment_receipt(payment_id: int, output_path: str,
     HEADER_H  = 36 + 10 + 13 + 13 + 12 + 16 + 20  # logo + name + addr + "Receipt" + rule + gap
 
     n_rows = 2          # student: name + user_id
-    n_rows += 2         # subscription: period + fee
+    n_rows += 2         # class + group
     n_rows += 2 + (1 if p.note else 0)  # payment: date + method + optional note
     n_sections = 3
 
-    if attendance_stats:
-        n_rows += 3
-        n_sections += 1
+    # Attendance: one compact line per month (always shown)
+    n_rows += max(1, len(attendance_months))
+    n_sections += 1
 
     exam_subj_count = 0
     if latest_exam:
@@ -623,10 +677,9 @@ def generate_payment_receipt(payment_id: int, output_path: str,
     line_kv("Name",    s.name    if s else "—", bold_val=True)
     line_kv("User ID", s.user_id if s else "—")
 
-    section_title("Subscription")
-    if sub:
-        line_kv("Period", f"{bs_str(sub.start_date)} → {bs_str(sub.end_date)}")
-        line_kv("Total Fee", f"Rs. {sub.total_fee:,.0f}")
+    section_title("Class & Group")
+    line_kv("Class", class_name, bold_val=True)
+    line_kv("Group", group_name, bold_val=True)
 
     section_title("Payment")
     line_kv("Date",   pdate)
@@ -634,17 +687,17 @@ def generate_payment_receipt(payment_id: int, output_path: str,
     if p.note:
         line_kv("Note", p.note)
 
-    if attendance_stats:
-        section_title(
-            f"Attendance · {bs_month_name(attendance_stats['bs_month'])}"
-            f" {attendance_stats.get('bs_year', '')}".strip()
+    section_title("Attendance")
+    shown = [m for m in attendance_months if m.get("working_days")]
+    if not shown:
+        line_kv("Status", "No attendance recorded")
+    for st in shown:
+        month_label = f"{bs_month_name(st['bs_month'])} {st.get('bs_year', '')}"
+        line_kv(
+            month_label,
+            f"Present {st.get('present', 0)} · Absent {st.get('absent', 0)}"
+            f" · of {st.get('working_days', 0)} days",
         )
-        for label, key in [
-            ("Working Days", "working_days"),
-            ("Present Days", "present"),
-            ("Absent Days",  "absent"),
-        ]:
-            line_kv(label, attendance_stats.get(key, 0))
 
     if latest_exam:
         section_title(f"Last Exam · {latest_exam['exam']}")

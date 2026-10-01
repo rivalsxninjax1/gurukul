@@ -492,3 +492,29 @@ def days_remaining_label(end_date) -> str:
     if diff >= 0:
         return f"{diff} days left"
     return f"Expired {abs(diff)} days ago"
+
+
+def bs_month_end_ad(ad_date):
+    """Return the AD date of the LAST day of the BS month containing ad_date."""
+    y, m, _ = ad_to_bs(ad_date)
+    return bs_month_ad_range(y, m)[1]
+
+
+def next_bs_month(bs_year: int, bs_month: int) -> tuple:
+    """Return (year, month) of the next BS month."""
+    if bs_month == 12:
+        return (bs_year + 1, 1)
+    return (bs_year, bs_month + 1)
+
+
+def prorated_fee(monthly_fee: float, start_ad, end_ad) -> float:
+    """Fee for start_ad..end_ad (inclusive) inside ONE BS month:
+    monthly_fee x days / days-in-that-month, rounded to nearest rupee.
+    A full month (1st..last day) returns exactly monthly_fee."""
+    y, m, _ = ad_to_bs(start_ad)
+    month_days = days_in_bs_month(y, m)
+    days = (end_ad - start_ad).days + 1
+    if days >= month_days:
+        return float(round(monthly_fee))
+    return float(round(monthly_fee * days / month_days))
+

@@ -56,6 +56,25 @@ def _run_migrations():
 
         conn.commit()
 
+        # students.monthly_fee — added for Nepali-month auto billing.
+        # Existing students get their latest subscription fee as monthly
+        # fee. A backup of the database is taken first.
+        if "monthly_fee" not in st_cols:
+            _backup_db_before_migration()
+            conn.execute(
+                text("ALTER TABLE students ADD COLUMN monthly_fee FLOAT")
+            )
+            conn.execute(text("""
+                UPDATE students SET monthly_fee = (
+                    SELECT total_fee FROM student_subscriptions ss
+                    WHERE ss.student_id = students.id
+                    ORDER BY ss.start_date DESC, ss.id DESC LIMIT 1
+                )
+                WHERE monthly_fee IS NULL
+            """))
+            conn.commit()
+            print("✅ Migration: students.monthly_fee (backfilled)")
+
         # deleted_student_ledger — added in v1.3
         res = conn.execute(
             text("SELECT name FROM sqlite_master "
@@ -84,6 +103,20 @@ def _run_migrations():
             print(f"✅ Migration: {result.rowcount} Incomplete "
                   "attendance records → Present")
         conn.commit()
+
+
+def _backup_db_before_migration():
+    """Copy the SQLite file next to itself before a data-changing migration."""
+    import os, shutil, datetime
+    from database.connection import _DB_PATH
+    try:
+        if os.path.isfile(_DB_PATH):
+            stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            dest = f"{_DB_PATH}.before_monthly_fee_{stamp}.bak"
+            shutil.copy2(_DB_PATH, dest)
+            print(f"✅ Backup before migration: {dest}")
+    except Exception as exc:  # never block start-up because of a backup
+        print(f"⚠ Could not create pre-migration backup: {exc}")
 
 
 def _seed_settings():

@@ -19478,3 +19478,30 @@
 2026-06-28 17:15:37,349 [INFO] services.export_service: Student profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpmcdhq1a5.pdf
 2026-06-28 17:15:37,527 [INFO] utils.pdf_to_image: PDF→PNG: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpmcdhq1a5.pdf -> /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpq9q41ncy.png (200 dpi)
 2026-06-28 17:15:37,527 [INFO] services.export_service: Student profile image: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpq9q41ncy.png
+2026-06-28 17:53:36,293 [INFO] services.subscription_service: auto_renew_expired_students: 0 subscription(s) created.
+2026-06-28 17:54:13,031 [INFO] services.export_service: Student profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpi43rckm9.pdf
+2026-06-28 17:54:13,421 [INFO] utils.pdf_to_image: PDF→PNG (? pages): /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpi43rckm9.pdf -> /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpqvt5flr4.png (200 dpi)
+2026-06-28 17:54:13,422 [INFO] services.export_service: Student profile image: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpqvt5flr4.png
+2026-06-28 17:54:41,984 [INFO] utils.pdf_to_image: PDF→PNG (? pages): /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpztaokve4.pdf -> /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpgs8ufsvt.png (300 dpi)
+2026-06-28 17:54:41,985 [INFO] services.subscription_service: Payment receipt image: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpgs8ufsvt.png
+2026-06-28 18:01:16,547 [INFO] services.subscription_service: auto_renew_expired_students: 0 subscription(s) created.
+2026-06-28 18:01:47,041 [INFO] utils.pdf_to_image: PDF→PNG (? pages): /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmp9sciv5r3.pdf -> /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmp1t1pr73n.png (300 dpi)
+2026-06-28 18:01:47,041 [INFO] services.subscription_service: Payment receipt image: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmp1t1pr73n.png
+2026-09-30 18:13:06,422 [INFO] services.subscription_service: auto_renew_expired_students: 453 subscription(s) created.
+2026-09-30 18:29:38,699 [INFO] services.subscription_service: auto_renew_expired_students: 0 subscription(s) created.
+2026-09-30 18:30:54,566 [INFO] services.backup_service: Safety snapshot before restore → /Users/sickboi/Desktop/gurukul database/gurukul/gurukul_pre_restore_safety_20260930_183054.db
+2026-09-30 18:30:54,574 [INFO] services.backup_service: SQLAlchemy engine disposed before restore.
+2026-09-30 18:30:54,581 [INFO] services.backup_service: Database restored from /Users/sickboi/Desktop/gurukul database/gurukul/tuition_cms.db → /Users/sickboi/Desktop/gurukul database/gurukul/tuition_cms.db
+2026-09-30 18:31:10,578 [INFO] services.subscription_service: auto_renew_expired_students: 0 subscription(s) created.
+2026-09-30 18:34:51,578 [INFO] services.export_service: Student profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmprj298nt3.pdf
+2026-09-30 18:34:52,582 [INFO] utils.pdf_to_image: PDF→PNG (? pages): /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmprj298nt3.pdf -> /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpsdpwx5vn.png (200 dpi)
+2026-09-30 18:34:52,582 [INFO] services.export_service: Student profile image: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpsdpwx5vn.png
+2026-10-01 18:39:46,802 [INFO] services.subscription_service: auto_renew_expired_students: 3 subscription(s) created.
+2026-10-01 18:40:20,350 [INFO] services.export_service: Student profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmp696fh6ib.pdf
+2026-10-01 18:40:21,398 [INFO] utils.pdf_to_image: PDF→PNG (? pages): /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmp696fh6ib.pdf -> /Users/sickboi/Desktop/gurukul database/gurukul/student_profile_46.png (200 dpi)
+2026-10-01 18:40:21,398 [INFO] services.export_service: Student profile image: /Users/sickboi/Desktop/gurukul database/gurukul/student_profile_46.png
+2026-10-01 18:42:19,271 [INFO] services.export_service: Student profile PDF: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmppxyvdtpb.pdf
+2026-10-01 18:42:19,481 [INFO] utils.pdf_to_image: PDF→PNG (? pages): /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmppxyvdtpb.pdf -> /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmp44mqev5k.png (200 dpi)
+2026-10-01 18:42:19,481 [INFO] services.export_service: Student profile image: /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmp44mqev5k.png
+2026-10-01 18:46:55,341 [INFO] utils.pdf_to_image: PDF→PNG (? pages): /var/folders/_f/5142hkws3j97l52r9h1zy8c80000gn/T/tmpbb_6kmcg.pdf -> /Users/sickboi/Desktop/gurukul database/gurukul/receipt_298.png (300 dpi)
+2026-10-01 18:46:55,342 [INFO] services.subscription_service: Payment receipt image: /Users/sickboi/Desktop/gurukul database/gurukul/receipt_298.png

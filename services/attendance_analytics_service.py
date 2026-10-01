@@ -112,13 +112,44 @@ def _empty(bs_year, bs_month):
 
 def get_two_month_analytics(student_id: int,
                               join_date: date = None) -> dict:
-    """Returns analytics for current and previous BS month."""
+    """Returns analytics for the two months shown on bills / printed profiles.
+
+    Normally this is the current and the previous Nepali month.  If those
+    two do not both have attendance records (e.g. attendance was not
+    imported recently), the two MOST RECENT Nepali months that do have
+    records are returned instead — so the printout is never just zeros.
+    "current" is the more recent of the two, "previous" the older one.
+    Each entry carries bs_year / bs_month, so printouts can label it.
+    """
     by, bm, _ = today_bs_tuple()
     py, pm    = prev_bs_month(by, bm)
 
     current  = get_monthly_analytics(student_id, by,  bm,  join_date)
     previous = get_monthly_analytics(student_id, py, pm,  join_date)
-    return {"current": current, "previous": previous}
+    if current["working_days"] and previous["working_days"]:
+        return {"current": current, "previous": previous}
+
+    # Fallback: walk back month by month (stop at the join month, max 36).
+    jy = jm = None
+    if join_date:
+        jy, jm, _ = ad_to_bs(join_date)
+    found, y, m = [], by, bm
+    for _ in range(36):
+        stats = get_monthly_analytics(student_id, y, m, join_date)
+        if stats["working_days"]:
+            found.append(stats)
+            if len(found) == 2:
+                break
+        if jy and (y, m) <= (jy, jm):
+            break
+        y, m = prev_bs_month(y, m)
+
+    if not found:                       # no attendance at all
+        return {"current": current, "previous": previous}
+    if len(found) == 1:                 # only one month has data
+        return {"current": found[0], "previous": _empty(*prev_bs_month(
+            found[0]["bs_year"], found[0]["bs_month"]))}
+    return {"current": found[0], "previous": found[1]}
 
 
 def get_teacher_monthly_analytics(teacher_id: int,
